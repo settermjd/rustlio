@@ -1,6 +1,8 @@
 <!-- markdownlint-disable MD013 -->
 
-# A small package that simplifies interacting with Twilio's APIs in Rust applications
+# Rustlio
+
+A small package that simplifies interacting with Twilio's APIs in Rust applications
 
 At this point, it's not a comprehensive library, but does provide the basics.
 My intention is to provide (yet another) Rust library to make interacting with Twilio's
