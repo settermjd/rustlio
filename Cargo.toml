@@ -2,6 +2,7 @@
 authors = ["Matthew Setter <matthew@matthewsetter.com>"]
 categories = ["api-bindings"]
 description = "This is a small package that simplifies interacting with Twilio's APIs in Rust applications."
+repository = "https://github.com/settermjd/rustlio"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 name = "rustlio"
