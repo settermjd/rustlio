@@ -4,7 +4,7 @@
 pub mod lookup {
     //! # Module lookup
     //!
-    //! The lookup module contains structs, functions, etc for working with Twilio's Lookup v2 API endpoint 
+    //! The lookup module contains structs, functions, etc for working with Twilio's Lookup v2 API endpoint
 
     use cli_table::{Cell, Style, Table, print_stdout};
     use itertools::Itertools;
@@ -16,13 +16,13 @@ pub mod lookup {
     /// This models the phone number information that is returned from requests to the API
     ///
     /// <div class="warning">
-    /// Currently, the struct only models some of the properties. 
-    /// The remaining properties will be added in future versions of the crate. 
-    /// Specifically, it only models the core properties plus properties of the Sim Swap and 
+    /// Currently, the struct only models some of the properties.
+    /// The remaining properties will be added in future versions of the crate.
+    /// Specifically, it only models the core properties plus properties of the Sim Swap and
     /// Line Type Intelligence add on packages.
     /// </div>
     ///
-    /// You can find complete documentation about all of the available properties 
+    /// You can find complete documentation about all of the available properties
     /// [in the documentation](https://www.twilio.com/docs/lookup/v2-api#response-properties).
     #[derive(Debug, Default, Deserialize)]
     pub struct PhoneNumber {
@@ -38,17 +38,17 @@ pub mod lookup {
     impl PhoneNumber {
         /// Returns whether the phone number is valid or not
         pub fn is_valid(&self) -> bool {
-            return self.valid;
+            self.valid
         }
 
         /// Returns any validation errors requesting information about the phone number
         pub fn get_validation_errors(&self) -> Option<Vec<String>> {
-            return self.validation_errors.clone();
+            self.validation_errors.clone()
         }
 
         /// Returns whether line type intelligence information is available for the phone number
         pub fn has_line_type_intelligence(&self) -> bool {
-            return self.line_type_intelligence.is_some();
+            self.line_type_intelligence.is_some()
         }
 
         /// Retrieves the line type intelligence information for a phone number
@@ -71,21 +71,22 @@ pub mod lookup {
                 _ => &LineTypeIntelligence::default(),
             };
 
-            line_type_intelligence.line_type.clone().unwrap_or("Unknown line type".to_string())
+            line_type_intelligence
+                .line_type
+                .clone()
+                .unwrap_or("Unknown line type".to_string())
         }
 
         /// Returns whether a SIM has been swapped recently
         pub fn has_been_swapped(&self) -> bool {
-            return match &self.sim_swap {
-                Some(sim_swap) => {
-                    return match &sim_swap.last_sim_swap {
-                        Some(last_sim_swap) => {
-                            return last_sim_swap.last_sim_swap_date.is_some() 
-                                && last_sim_swap.swapped_period.is_some()
-                                && last_sim_swap.swapped_in_period
-                        },
-                        _ => false,
+            match &self.sim_swap {
+                Some(sim_swap) => match &sim_swap.last_sim_swap {
+                    Some(last_sim_swap) => {
+                        last_sim_swap.last_sim_swap_date.is_some()
+                            && last_sim_swap.swapped_period.is_some()
+                            && last_sim_swap.swapped_in_period
                     }
+                    _ => false,
                 },
                 _ => false,
             }
@@ -141,7 +142,7 @@ pub mod lookup {
     impl LastSimSwap {
         // This returns whether a SIM was swapped recently
         pub fn was_swapped_recently(&self) -> bool {
-            return self.swapped_in_period;
+            self.swapped_in_period
         }
     }
 
@@ -200,20 +201,17 @@ pub mod lookup {
         lookup_uri_base: String,
         data_packages: &HashMap<DataPackage, bool>,
     ) -> Url {
-        let mut issue_list_url = Url::parse(&lookup_uri_base).expect("Unable to parse the provided URL");
+        let mut issue_list_url =
+            Url::parse(&lookup_uri_base).expect("Unable to parse the provided URL");
 
         if data_packages.is_empty() {
             return issue_list_url;
         }
 
-        let desired_data_packages = data_packages
-            .into_iter()
-            .filter_map(|(k, v)| {
-                match v {
-                    true => Some(k),
-                    false => None,
-                }
-            });
+        let desired_data_packages = data_packages.iter().filter_map(|(k, v)| match v {
+            true => Some(k),
+            false => None,
+        });
 
         let field_names: String = desired_data_packages
             .map(|field| field.as_str())
@@ -225,7 +223,7 @@ pub mod lookup {
             issue_list_url.set_query(Some(format!("Fields={field_names}").as_str()));
         }
 
-        return issue_list_url;
+        issue_list_url
     }
 
     /// Looks up details of a phone number using the Twilio Lookup v2 API
@@ -261,16 +259,17 @@ pub mod lookup {
     /// let data = lookup_phone_data(number, &data_packages, &user, &pass);
     /// ```
     pub fn lookup_phone_data(
-        phone_number: &str, 
-        data_packages: &HashMap<DataPackage,bool>,
+        phone_number: &str,
+        data_packages: &HashMap<DataPackage, bool>,
         client: &Client,
         user: &String,
         password: &String,
     ) -> Result<PhoneNumber, reqwest::Error> {
         let request_url: String = get_lookup_request_url(
-            format!("https://lookups.twilio.com/v2/PhoneNumbers/{phone_number}"), 
-            data_packages
-        ).to_string();
+            format!("https://lookups.twilio.com/v2/PhoneNumbers/{phone_number}"),
+            data_packages,
+        )
+        .to_string();
 
         let response = client
             .get(request_url)
@@ -278,11 +277,11 @@ pub mod lookup {
             .send()?;
 
         let result = response.error_for_status();
-        return match result {
+        match result {
             Ok(data) => {
                 let record: PhoneNumber = data.json()?;
-                return Ok(record);
-            },
+                Ok(record)
+            }
             Err(e) => Err(e),
         }
     }
@@ -290,7 +289,7 @@ pub mod lookup {
     /// Retrieve a phone number with line type intelligence information
     ///
     /// It's a small wrapper around the [`lookup_phone_data`] function to save time and effort calling
-    /// the function and passing in a HashMap with the LineTypeIntelligence DataPackage set. 
+    /// the function and passing in a HashMap with the LineTypeIntelligence DataPackage set.
     /// See [`lookup_phone_data`] for more information.
     ///
     /// # Examples
@@ -306,7 +305,7 @@ pub mod lookup {
     /// let client = reqwest::blocking::Client::new();
     /// let response = client
     ///     .get(request_url)
-    ////     .basic_auth(user.clone(), Some(pass.clone()))
+    ///     .basic_auth(user.clone(), Some(pass.clone()))
     ///     .send()?;
     ///
     /// // Attempt to retrieve a phone number with line type intelligence information.
@@ -325,32 +324,31 @@ pub mod lookup {
     /// }
     /// ```
     pub fn lookup_phone_data_with_line_type(
-        phone_number: &str, 
+        phone_number: &str,
         client: &Client,
         user: &String,
         password: &String,
     ) -> Result<PhoneNumber, reqwest::Error> {
         lookup_phone_data(
-            phone_number, 
+            phone_number,
             &HashMap::from([(DataPackage::LineTypeIntelligence, true)]),
-            client, 
-            user, 
+            client,
+            user,
             password,
         )
     }
 
     /// A convenience method for displaying the validation errors for an invalid phone number
-    pub fn show_invalid_phone_number(phone_number: String, record: &PhoneNumber)
-    {
+    pub fn show_invalid_phone_number(phone_number: String, record: &PhoneNumber) {
         println!("{phone_number} is not a valid phone number. See the errors below to know why.");
-        let errors = record.get_validation_errors().unwrap_or_else(|| Vec::new());
+        let errors = record.get_validation_errors().unwrap_or_default();
         for error in errors {
             println!("Error: {}", error);
         }
     }
 
     /// Takes a twilio::PhoneNumber and displays its details in tabular format
-    /// 
+    ///
     /// # Examples
     ///
     /// Basic usage:
@@ -371,8 +369,7 @@ pub mod lookup {
     /// };
     /// print_phone_number_data(&record);
     /// ```
-    pub fn print_phone_number_data(record: &PhoneNumber)
-    {
+    pub fn print_phone_number_data(record: &PhoneNumber) {
         let country_code: &String = record
             .country_code
             .as_ref()
@@ -410,16 +407,16 @@ pub mod lookup {
         if record.has_line_type_intelligence() {
             let line_type_intelligence: LineTypeIntelligence = record.get_line_type_intelligence();
             headers.push("Line Type".cell().bold(true));
-            row.push(line_type_intelligence.line_type.unwrap_or("Line type not available".to_string()).cell());
+            row.push(
+                line_type_intelligence
+                    .line_type
+                    .unwrap_or("Line type not available".to_string())
+                    .cell(),
+            );
         }
 
-        let table = vec![row]
-            .table()
-            .title(headers)
-            .bold(true);
+        let table = vec![row].table().title(headers).bold(true);
 
         assert!(print_stdout(table).is_ok());
     }
 }
-
-
