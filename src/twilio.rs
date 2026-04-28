@@ -1,6 +1,76 @@
 //! # Module twilio
 //!
 //! The twilio module contains structs, functions, etc for working with Twilio's various API endpoints
+
+use serde::{Deserialize, Serialize};
+
+/// This models the response received from Twilio when a request is unsuccessful
+///
+/// You can find complete documentation
+/// [in the documentation](https://www.twilio.com/docs/usage/twilios-response#exceptions).
+#[allow(dead_code)]
+#[derive(Serialize, Deserialize)]
+pub struct ErrorResponse {
+    status: u16,
+    message: String,
+    code: Option<u16>,
+    more_info: Option<String>,
+}
+
+pub mod messaging {
+    //! # Module messaging
+    //!
+    //! The messaging module contains structs, functions, etc for working with Twilio's Messaging API endpoint
+    /// You can find full details  
+    /// [in the documentation](https://www.twilio.com/docs/messaging/api for complete details).
+    use serde::{Deserialize, Serialize};
+
+    /// This models the response received from Twilio when messages are successfully sent
+    ///
+    /// Messages can be SMS, MMS, RCS, and WhatsApp.
+    ///
+    /// You can find full details about all of the available properties
+    /// [in the documentation](https://www.twilio.com/docs/messaging/api/message-resource#message-properties).
+    #[allow(dead_code)]
+    #[derive(Serialize, Deserialize)]
+    pub struct MessageResource {
+        account_sid: Option<String>,
+        api_version: Option<String>,
+        body: Option<String>,
+        date_created: Option<String>,
+        date_sent: Option<String>,
+        date_updated: Option<String>,
+        direction: Option<String>,
+        error_code: Option<String>,
+        error_message: Option<String>,
+        from: Option<String>,
+        messaging_service_sid: Option<String>,
+        num_media: Option<String>,
+        num_segments: Option<String>,
+        price: Option<String>,
+        price_unit: Option<String>,
+        sid: Option<String>,
+        status: Option<String>,
+        subresource_uris: Option<SubresourceUris>,
+        to: Option<String>,
+        uri: Option<String>,
+    }
+
+    /// This models the subresource_uris property of the response received from Twilio when messages are successfully sent
+    #[allow(dead_code)]
+    #[derive(Serialize, Deserialize)]
+    pub struct SubresourceUris {
+        all_time: String,
+        today: String,
+        yesterday: String,
+        this_month: String,
+        last_month: String,
+        daily: String,
+        monthly: String,
+        yearly: String,
+    }
+}
+
 pub mod lookup {
     //! # Module lookup
     //!
