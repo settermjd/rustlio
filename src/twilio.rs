@@ -154,8 +154,8 @@ pub mod lookup {
         pub country_code: Option<String>,
         pub phone_number: Option<String>,
         pub national_format: Option<String>,
-        valid: bool,
-        validation_errors: Option<Vec<String>>,
+        pub valid: bool,
+        pub validation_errors: Option<Vec<String>>,
         pub sim_swap: Option<SimSwap>,
         pub line_type_intelligence: Option<LineTypeIntelligence>,
     }
