@@ -312,15 +312,21 @@ pub mod lookup {
     ///
     /// # Examples
     ///
-    /// ```
+    /// ```rust,no_run
     /// use std::collections::HashMap;
+    /// use rustlio::twilio::lookup::DataPackage;
+    /// use rustlio::twilio::lookup::get_lookup_request_url;
     ///
-    /// let mut data_packages: HashMap<twilio::lookup::DataPackage, bool> = HashMap::new();
-    /// data_packages.insert("Line Type Intelligence".to_string(), true);
-    /// data_packages.insert("SIM Swap".to_string(), true);
-    /// data_packages.insert("SMS Pumping Risk Score".to_string(), true);
+    /// let mut data_packages: HashMap<DataPackage, bool> = HashMap::new();
+    /// data_packages.insert(DataPackage::LineTypeIntelligence, true);
+    /// data_packages.insert(DataPackage::SimSwap, true);
+    /// data_packages.insert(DataPackage::SmsPumpingRiskScore, true);
+    /// let phone_number = "+61123456789";
     ///
-    /// let url = get_lookup_request_url(data_packages)
+    /// let url = get_lookup_request_url(
+    ///     format!("https://lookups.twilio.com/v2/PhoneNumbers/{phone_number}"),
+    ///     &data_packages
+    /// );
     /// ```
     pub fn get_lookup_request_url(
         lookup_uri_base: String,
@@ -364,24 +370,26 @@ pub mod lookup {
     ///
     /// Basic usage:
     ///
-    /// ```
-    /// use twilio::PhoneNumber;
-    ///
-    /// // For sakes of simplicity, you could use Dotenv to load the username, password, and phone
-    /// number from a .env file.
-    /// dotenv::dotenv().ok();
-    /// let user = env::var("TWILIO_ACCOUNT_SID")?;
-    /// let pass = env::var("TWILIO_AUTH_TOKEN")?;
-    /// let phone_number = env::var("PHONE_NUMBER")?;
+    /// ```rust,no_run
+    /// use reqwest::blocking::Client;
+    /// use rustlio::twilio::lookup;
+    /// use std::collections::HashMap;
+    /// use std::env;
     ///
     /// // Setting a DataPackage to true indicates that it is to be in the lookup request.
-    /// // You can add a DataPackage and set it to false, or just not include it to not include it in
-    /// the lookup request.
+    /// // You can add a DataPackage and set it to false, or just not include it to not
+    /// // include it in the lookup request.
     /// let data_packages = HashMap::from([
-    ///     (twilio::DataPackage::LineTypeIntelligence, true),
+    ///     (lookup::DataPackage::LineTypeIntelligence, true),
     /// ]);
     ///
-    /// let data = lookup_phone_data(number, &data_packages, &user, &pass);
+    /// let data = lookup::lookup_phone_data(
+    ///     "+61123456789",
+    ///     &data_packages,
+    ///     &Client::new(),
+    ///     &env::var("TWILIO_ACCOUNT_SID").unwrap(),
+    ///     &env::var("TWILIO_AUTH_TOKEN").unwrap()
+    /// );
     /// ```
     pub fn lookup_phone_data(
         phone_number: &str,
@@ -421,32 +429,27 @@ pub mod lookup {
     ///
     /// Basic usage:
     ///
-    /// ```
-    /// use twilio::PhoneNumber;
-    ///
-    /// let user = env::var("TWILIO_ACCOUNT_SID")?;
-    /// let pass = env::var("TWILIO_AUTH_TOKEN")?;
-    /// let phone_number = env::var("PHONE_NUMBER")?;
-    /// let client = reqwest::blocking::Client::new();
-    /// let response = client
-    ///     .get(request_url)
-    ///     .basic_auth(user.clone(), Some(pass.clone()))
-    ///     .send()?;
+    /// ```rust,no_run
+    /// use rustlio::twilio::lookup::PhoneNumber;
+    /// use rustlio::twilio::lookup::lookup_phone_data_with_line_type;
+    /// use std::env;
     ///
     /// // Attempt to retrieve a phone number with line type intelligence information.
-    /// let data = lookup::lookup_phone_data_with_line_type(number, &client, &user, &pass);
+    /// let data = lookup_phone_data_with_line_type(
+    ///     "+61123456789",
+    ///     &reqwest::blocking::Client::new(),
+    ///     &env::var("TWILIO_ACCOUNT_SID").unwrap(),
+    ///     &env::var("TWILIO_AUTH_TOKEN").unwrap()
+    /// );
     ///
     /// // Check if a valid phone number was returned, instantiating a default one, if not.
     /// let phone_number = match data {
     ///     Ok(number) => number,
-    ///     Err(_e) => lookup::PhoneNumber::default(),
+    ///     Err(_e) => PhoneNumber::default(),
     /// };
     ///
     /// // Check the phone number's line type.
-    /// match phone_number.get_line_type() != "landline" {
-    ///     true => Some(number),
-    ///     false => None,
-    /// }
+    /// println!("{}", phone_number.get_line_type());
     /// ```
     pub fn lookup_phone_data_with_line_type(
         phone_number: &str,
@@ -478,21 +481,21 @@ pub mod lookup {
     ///
     /// Basic usage:
     ///
-    /// ```
-    /// use twilio::lookup::PhoneNumber;
+    /// ```rust,no_run
+    /// use rustlio::twilio::lookup;
     ///
     /// // The below example is a simplistic example of instantiating a PhoneNumber.
     /// // Another way is to use the lookup_phone_data function and retrieve live data.
-    /// let record: PhoneNumber = PhoneNumber {
-    ///     country_code: Some("+61"),
-    ///     phone_number: Some("+61123456789"),
-    ///     national_format: Some("0123456789"),
+    /// let record: lookup::PhoneNumber = lookup::PhoneNumber {
+    ///     country_code: Some("+61".to_string()),
+    ///     phone_number: Some("+61123456789".to_string()),
+    ///     national_format: Some("0123456789".to_string()),
     ///     valid: true,
     ///     validation_errors: None,
     ///     sim_swap: None,
     ///     line_type_intelligence: None,
     /// };
-    /// print_phone_number_data(&record);
+    /// lookup::print_phone_number_data(&record);
     /// ```
     pub fn print_phone_number_data(record: &PhoneNumber) {
         let country_code: &String = record
