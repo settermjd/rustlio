@@ -8,7 +8,7 @@ license = "MIT OR Apache-2.0"
 name = "rustlio"
 keywords = ["Twilio"]
 readme = "README.md"
-version = "0.1.3"
+version = "0.1.4"
 
 [dependencies]
 anyhow = "1.0.102"
