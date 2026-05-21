@@ -23,8 +23,7 @@ pub mod messaging {
     //! The messaging module contains structs, functions, etc for working with Twilio's Messaging API endpoint
     /// You can find full details  
     /// [in the documentation](https://www.twilio.com/docs/messaging/api for complete details).
-    use getset::Getters;
-    use serde::{Deserialize, Serialize};
+    use serde::Deserialize;
 
     /// This models the response received from Twilio when messages are successfully sent
     ///
@@ -33,96 +32,42 @@ pub mod messaging {
     /// You can find full details about all of the available properties
     /// [in the documentation](https://www.twilio.com/docs/messaging/api/message-resource#message-properties).
     #[allow(dead_code)]
-    #[derive(Getters, Serialize, Deserialize)]
+    #[derive(Debug, Deserialize)]
     pub struct MessageResource {
-        #[getset(get)]
-        account_sid: Option<String>,
-
-        #[getset(get)]
-        api_version: Option<String>,
-
-        #[getset(get)]
-        body: Option<String>,
-
-        #[getset(get)]
-        date_created: Option<String>,
-
-        #[getset(get)]
-        date_sent: Option<String>,
-
-        #[getset(get)]
-        date_updated: Option<String>,
-
-        #[getset(get)]
-        direction: Option<String>,
-
-        #[getset(get)]
-        error_code: Option<String>,
-
-        #[getset(get)]
-        error_message: Option<String>,
-
-        #[getset(get)]
-        from: Option<String>,
-
-        #[getset(get)]
-        messaging_service_sid: Option<String>,
-
-        #[getset(get)]
-        num_media: Option<String>,
-
-        #[getset(get)]
-        num_segments: Option<String>,
-
-        #[getset(get)]
-        price: Option<String>,
-
-        #[getset(get)]
-        price_unit: Option<String>,
-
-        #[getset(get)]
-        sid: Option<String>,
-
-        #[getset(get)]
-        status: Option<String>,
-
-        #[getset(get)]
-        subresource_uris: Option<SubresourceUris>,
-
-        #[getset(get)]
-        to: Option<String>,
-
-        #[getset(get)]
-        uri: Option<String>,
+        pub account_sid: Option<String>,
+        pub api_version: Option<String>,
+        pub body: Option<String>,
+        pub date_created: Option<String>,
+        pub date_sent: Option<String>,
+        pub date_updated: Option<String>,
+        pub direction: Option<String>,
+        pub error_code: Option<String>,
+        pub error_message: Option<String>,
+        pub from: Option<String>,
+        pub messaging_service_sid: Option<String>,
+        pub num_media: Option<String>,
+        pub num_segments: Option<String>,
+        pub price: Option<String>,
+        pub price_unit: Option<String>,
+        pub sid: Option<String>,
+        pub status: Option<String>,
+        pub subresource_uris: Option<SubresourceUris>,
+        pub to: Option<String>,
+        pub uri: Option<String>,
     }
 
     /// This models the subresource_uris property of the response received from Twilio when messages are successfully sent
     #[allow(dead_code)]
-    #[derive(Getters, Serialize, Deserialize)]
+    #[derive(Debug, Deserialize)]
     pub struct SubresourceUris {
-        #[getset(get)]
-        all_time: String,
-
-        #[getset(get)]
-        today: String,
-
-        #[getset(get)]
-        yesterday: String,
-
-        #[getset(get)]
-        this_month: String,
-
-        #[getset(get)]
-        last_month: String,
-
-        #[getset(get)]
-        daily: String,
-
-        #[getset(get)]
-        monthly: String,
-
-        #[getset(get)]
-        yearly: String,
+        pub all_time: String,
+        pub today: String,
+        pub yesterday: String,
+        pub this_month: String,
+        pub last_month: String,
+        pub daily: String,
+        pub monthly: String,
+        pub yearly: String,
     }
 }
 
