@@ -30,7 +30,7 @@ cargo add rustlio
 
 ## Using the library
 
-You can find out how to use the library in its documentation.
+You can find out how to use the library in [its documentation](https://docs.rs/rustlio/latest/rustlio/).
 
 ## Contributing
 
