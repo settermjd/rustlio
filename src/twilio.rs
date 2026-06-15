@@ -524,7 +524,7 @@ pub mod security {
         ///
         /// [twilio_auth_token]: https://www.twilio.com/docs/iam/api/authtoken
         /// [twilio_console]: https://1console.twilio.com
-        auth_token: String,
+        pub auth_token: String,
     }
 
     impl WebhookValidator {
