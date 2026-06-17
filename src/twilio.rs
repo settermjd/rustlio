@@ -515,6 +515,7 @@ pub mod security {
     ///
     /// [webhooks]: https://www.twilio.com/docs/usage/webhooks
     /// [webhook_security]: https://www.twilio.com/docs/usage/webhooks/webhooks-security
+    #[derive(Clone, Debug)]
     pub struct WebhookValidator {
         /// Your [Twilio Auth Token][twilio_auth_token]
         ///
