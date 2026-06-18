@@ -15,14 +15,13 @@ base64 = "0.22.1"
 cli-table = "0.5.0"
 constant_time_eq = "0.4.2"
 csv = "1.4.0"
+form_urlencoded = "1.2.2"
 getset = "0.1.6"
 hex = "0.4.3"
 hmac = "0.13.0"
 http = "1.4.0"
 itertools = "0.14.0"
 log = "0.4.32"
-ordermap = "1.2.0"
-query_map = { version = "0.7.0", features = ["url-query", "form_urlencoded"] }
 reqwest = { version = "0.13.2", features = ["blocking", "json"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0"
