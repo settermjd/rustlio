@@ -505,7 +505,6 @@ pub mod security {
     use hex;
     use hmac::{Hmac, KeyInit, Mac};
     use log::info;
-    use query_map::QueryMap;
     use sha1::{Digest, Sha1};
     use sha2::Sha256;
     use url::Url;
@@ -602,12 +601,10 @@ pub mod security {
                 let Ok(body) = str::from_utf8(body) else {
                     return false;
                 };
-                let parsed_body = body.parse::<QueryMap>().unwrap_or_default();
-                let mut parsed_params: OrderMap<String, String> = OrderMap::new();
-                for (key, value) in parsed_body.iter() {
-                    parsed_params.insert(key.to_string(), value.to_string());
-                }
-                return self.validate(url, &mut parsed_params, expected_signature);
+                let parsed_body = form_urlencoded::parse(body.as_bytes())
+                    .map(|(key, value)| (key.to_string(), value.to_string()))
+                    .collect();
+                return self.validate(url, &parsed_body, expected_signature);
             }
 
             self.validate(&mut url.clone(), &HashMap::new(), expected_signature)
