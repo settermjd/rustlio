@@ -597,6 +597,8 @@ pub mod security {
 
             let (_, body_sha256) = body_sha256_query_pair;
 
+            // If a SHA256 hash of the body has not been provided, then the body is assumed to
+            // contain an x-www-form-urlencoded request.
             if body_sha256.is_empty() {
                 let Ok(body) = str::from_utf8(body) else {
                     return false;
