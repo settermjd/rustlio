@@ -584,12 +584,7 @@ pub mod security {
         ///     request_body.as_bytes()
         /// );
         /// ```
-        pub fn validate_body(
-            &self,
-            url: &mut Url,
-            expected_signature: &String,
-            body: &[u8],
-        ) -> bool {
+        pub fn validate_body(&self, url: &mut Url, expected_signature: &str, body: &[u8]) -> bool {
             let mut query_params = url.query_pairs();
             let body_sha256_query_pair = query_params
                 .find(|pair| pair.0 == "bodySHA256")
@@ -610,7 +605,7 @@ pub mod security {
             }
 
             self.validate(&mut url.clone(), &HashMap::new(), expected_signature)
-                && self.validate_body_content(body, &body_sha256.to_string())
+                && self.validate_body_content(body, &body_sha256)
         }
 
         /// Validates Twilio request signatures sent with GET webhooks
@@ -643,7 +638,7 @@ pub mod security {
             &self,
             url: &mut Url,
             params: &HashMap<String, String>,
-            expected_signature: &String,
+            expected_signature: &str,
         ) -> bool {
             if !params.is_empty() {
                 let combined_params = self.sort_and_combine_params(params);
@@ -658,7 +653,7 @@ pub mod security {
         ///
         /// It returns true if the computed SHA256 hash of the provided body matches the expected
         /// hash.
-        fn validate_body_content(&self, body: &[u8], expected_hash: &String) -> bool {
+        fn validate_body_content(&self, body: &[u8], expected_hash: &str) -> bool {
             self.compare(&self.compute_body_hash(body), expected_hash)
         }
 
@@ -703,13 +698,13 @@ pub mod security {
         ///
         /// - [Timing attack][timing_attack]
         /// - [Preventing Timing Attacks on String Comparison with a Double HMAC
-        /// Strategy][prevent_timing_attacks]
+        ///   Strategy][prevent_timing_attacks]
         /// - [Timing attacks in password hash comparisons][timing_attaks_password_hash_comparisons]
         ///
         /// [timing_attack]: https://en.wikipedia.org/wiki/Timing_attack
         /// [prevent_timing_attacks]: https://paragonie.com/blog/2015/11/preventing-timing-attacks-on-string-comparison-with-double-hmac-strategy
         /// [timing_attaks_password_hash_comparisons]: https://security.stackexchange.com/questions/239054/timing-attacks-in-password-hash-comparisons
-        fn compare(&self, a: &String, b: &String) -> bool {
+        fn compare(&self, a: &str, b: &str) -> bool {
             if a.is_empty() || b.is_empty() {
                 return false;
             }
@@ -749,7 +744,7 @@ pub mod security {
             let request_body = r#"[{"specversion":"1.0","type":"com.twilio.eventstreams.test-event","source":"Sink","id":"AC11111111111111111111111111111111","dataschema":"https://events-schemas.twilio.com/EventStreams.TestSink/1.json","datacontenttype":"application/json","time":"2026-06-10T06:02:54.377Z","data":{"test_id":"cae2f9e2-c277-4612-8ad3-93c1a7a3ef88"}}]"#;
             assert!(validator.validate_body(
                 &mut url,
-                &"qovYYTCoTFG3Ga6KmSrRVvSgwm8=".to_string(),
+                "qovYYTCoTFG3Ga6KmSrRVvSgwm8=",
                 request_body.as_bytes()
             ));
         }
@@ -767,11 +762,7 @@ pub mod security {
             let validator = WebhookValidator {
                 auth_token: AUTH_TOKEN.to_string(),
             };
-            assert!(validator.validate_body(
-                &mut url,
-                &expected_signature.to_string(),
-                request_body.as_bytes()
-            ));
+            assert!(validator.validate_body(&mut url, expected_signature, request_body.as_bytes()));
         }
 
         #[test]
@@ -785,11 +776,7 @@ pub mod security {
             };
 
             let params = HashMap::new();
-            assert!(!validator.validate(
-                &mut url,
-                &params,
-                &"aU96RJE2IgIwrbsBNw111111111=".to_string()
-            ));
+            assert!(!validator.validate(&mut url, &params, "aU96RJE2IgIwrbsBNw111111111="));
         }
 
         #[test]
@@ -803,7 +790,7 @@ pub mod security {
             };
 
             let params = HashMap::new();
-            assert!(validator.validate(&mut url, &params, &VALID_EXPECTED_SIGNATURE.to_string()));
+            assert!(validator.validate(&mut url, &params, VALID_EXPECTED_SIGNATURE));
         }
     }
 }
