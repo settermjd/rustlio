@@ -646,7 +646,7 @@ pub mod security {
             expected_signature: &String,
         ) -> bool {
             if !params.is_empty() {
-            let combined_params = self.sort_and_combine_params(params);
+                let combined_params = self.sort_and_combine_params(params);
                 url.set_query(Some(String::from_iter(combined_params).as_str()));
             }
             let computed_signature = self.compute_signature(self.remove_port(&mut url.clone()));
