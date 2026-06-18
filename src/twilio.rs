@@ -498,12 +498,13 @@ pub mod security {
     //! # Module security
     //!
     //! The security module contains structs, functions, etc for validating inbound webhooks from Twilio
+    use std::collections::{BTreeMap, HashMap};
+
     use base64::prelude::*;
     use constant_time_eq::constant_time_eq;
     use hex;
     use hmac::{Hmac, KeyInit, Mac};
     use log::info;
-    use ordermap::OrderMap;
     use query_map::QueryMap;
     use sha1::{Digest, Sha1};
     use sha2::Sha256;
@@ -619,6 +620,7 @@ pub mod security {
         ///
         /// ```rust,no_run
         /// use rustlio::twilio::security;
+        /// use std::collections::HashMap;
         /// use url::Url;
         ///
         /// let webhook_url = "https://96e5-165-225-114-134.ngrok-free.app/webhook?bodySHA256=e6ca4452daa092f8b0ecb9cdd24328f9b565196e0a25bc4e612bf198ad77fbd5";
@@ -626,7 +628,7 @@ pub mod security {
         ///     Ok(v) => v,
         ///     Err(_) => panic!("Could not parse URL"),
         /// };
-        /// let mut params = OrderMap::new();
+        /// let params = HashMap::new();
         ///
         /// let validator = security::WebhookValidator {
         ///     auth_token: "<YOUR TWILIO AUTH TOKEN>".to_string(),
@@ -636,7 +638,7 @@ pub mod security {
         pub fn validate(
             &self,
             url: &Url,
-            params: &mut OrderMap<String, String>,
+            params: &HashMap<String, String>,
             expected_signature: &String,
         ) -> bool {
             let combined_params = self.sort_and_combine_params(params);
@@ -658,14 +660,16 @@ pub mod security {
         ///
         /// This is a utility function used by compute_signature. That function appends each of the
         /// returned params onto the end of the received webhook URI.
-        fn sort_and_combine_params(&self, params: &mut OrderMap<String, String>) -> Vec<String> {
-            params.sort_by_key(|key, _| key.to_lowercase());
-            let mut combined_params: Vec<String> = Vec::new();
-            for param in params {
-                combined_params.push(format!("{}{}", param.0, param.1));
+        fn sort_and_combine_params(&self, params: &HashMap<String, String>) -> Vec<String> {
+            let mut sorted_params = BTreeMap::new();
+            for (key, value) in params {
+                sorted_params.insert(key.to_lowercase(), value);
             }
 
-            combined_params
+            sorted_params
+                .iter()
+                .map(|(k, v)| format!("{k}{v}"))
+                .collect::<Vec<String>>()
         }
 
         /// Creates a SHA256 hash of the provided body and returns it as a lowercase hex string
@@ -722,6 +726,8 @@ pub mod security {
 
     #[cfg(test)]
     mod tests {
+        use std::collections::HashMap;
+
         use super::*;
 
         const AUTH_TOKEN: &str = "11111111111111111111111111111111";
@@ -775,10 +781,10 @@ pub mod security {
                 Err(_) => panic!("Could not parse URL"),
             };
 
-            let mut params = OrderMap::new();
+            let params = HashMap::new();
             assert!(!validator.validate(
                 &url,
-                &mut params,
+                &params,
                 &"aU96RJE2IgIwrbsBNw111111111=".to_string()
             ));
         }
@@ -793,8 +799,8 @@ pub mod security {
                 Err(_) => panic!("Could not parse URL"),
             };
 
-            let mut params = OrderMap::new();
             assert!(validator.validate(&url, &mut params, &VALID_EXPECTED_SIGNATURE.to_string()));
+            let params = HashMap::new();
         }
     }
 }
