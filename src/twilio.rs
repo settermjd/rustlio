@@ -103,6 +103,7 @@ pub mod lookup {
         pub validation_errors: Option<Vec<String>>,
         pub sim_swap: Option<SimSwap>,
         pub line_type_intelligence: Option<LineTypeIntelligence>,
+        pub sms_pumping_risk: Option<SmsPumpingRiskScore>,
     }
 
     impl PhoneNumber {
@@ -129,6 +130,61 @@ pub mod lookup {
             };
 
             line_type_intelligence.clone()
+        }
+
+        /// Retrieves the SMS pumping risk score information for a phone number
+        ///
+        /// # Examples
+        ///
+        /// ## Basic example
+        ///
+        /// ```rust,no_run
+        /// use reqwest::Client;
+        /// use rustlio::twilio::lookup;
+        /// use std::collections::HashMap;
+        /// use std::env;
+        ///
+        /// # tokio_test::block_on(async {
+        /// let phone_number = "+61123456789";
+        ///
+        /// // Setting a DataPackage to true indicates that it is to be in the lookup request.
+        /// // You can add a DataPackage and set it to false, or just not include it to not
+        /// // include it in the lookup request.
+        /// let data_packages = HashMap::from([
+        ///     (lookup::DataPackage::SmsPumpingRiskScore, true),
+        /// ]);
+        ///
+        /// // Perform a basic lookup of a phone number
+        /// // This will only return the basic details of the phone number, without any extra,
+        /// // Data Package, information.
+        /// let data = lookup::lookup_phone_data(
+        ///     phone_number,
+        ///     &data_packages,
+        ///     &Client::new(),
+        ///     &env::var("TWILIO_ACCOUNT_SID").unwrap(),
+        ///     &env::var("TWILIO_AUTH_TOKEN").unwrap()
+        /// )
+        /// .await
+        /// .expect(format!("Unable to retrieve data for {phone_number}").as_str());
+        ///
+        /// // If the phone number was valid, print out the carrier risk category, if available.
+        /// if data.is_valid() {
+        ///     let sms_pumping_risk = data.get_sms_pumping_risk_score();
+        ///     if let Some(carrier_risk_category) = sms_pumping_risk.carrier_risk_category {
+        ///         println!("The phone number's carrier risk category is: {carrier_risk_category}");
+        ///     }
+        /// } else {
+        ///     println!("{phone_number} is NOT valid")
+        /// }
+        /// # })
+        /// ```
+        pub fn get_sms_pumping_risk_score(&self) -> SmsPumpingRiskScore {
+            let sms_pumping_risk = match &self.sms_pumping_risk {
+                Some(sms_pumping_risk) => sms_pumping_risk,
+                _ => &SmsPumpingRiskScore::default(),
+            };
+
+            sms_pumping_risk.clone()
         }
 
         /// Returns the phone number's line type
@@ -188,6 +244,19 @@ pub mod lookup {
         pub mobile_country_code: Option<String>,
         pub mobile_network_code: Option<String>,
         pub carrier_name: Option<String>,
+        pub error_code: Option<String>,
+    }
+
+    /// SmsPumpingRiskScore models a phone number's SMS pumping risk score properties
+    ///
+    /// For more information, [check out the documentation](https://www.twilio.com/docs/lookup/v2-api/sms-pumping-risk).
+    #[derive(Clone, Deserialize, Default, Debug)]
+    pub struct SmsPumpingRiskScore {
+        pub carrier_risk_category: Option<String>,
+        pub number_blocked: Option<bool>,
+        pub number_blocked_date: Option<String>,
+        pub number_blocked_last_3_months: Option<bool>,
+        pub sms_pumping_risk_score: u32,
         pub error_code: Option<String>,
     }
 
@@ -495,6 +564,7 @@ pub mod lookup {
     ///     validation_errors: None,
     ///     sim_swap: None,
     ///     line_type_intelligence: None,
+    ///     sms_pumping_risk: None,
     /// };
     /// lookup::print_phone_number_data(&record);
     /// ```
