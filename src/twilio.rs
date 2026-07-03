@@ -78,7 +78,7 @@ pub mod lookup {
 
     use cli_table::{Cell, Style, Table, print_stdout};
     use itertools::Itertools;
-    use reqwest::blocking::Client;
+    use reqwest::Client;
     use serde::Deserialize;
     use std::collections::HashMap;
     use url::Url;
@@ -313,13 +313,49 @@ pub mod lookup {
     ///
     /// # Examples
     ///
-    /// Basic usage:
+    /// ## Basic usage with no Data Package information:
     ///
     /// ```rust,no_run
-    /// use reqwest::blocking::Client;
+    /// use reqwest::Client;
     /// use rustlio::twilio::lookup;
     /// use std::collections::HashMap;
     /// use std::env;
+    ///
+    /// # tokio_test::block_on(async {
+    /// let phone_number = "+61123456789";
+    ///
+    /// // Perform a basic lookup of a phone number
+    /// // This will only return the basic details of the phone number, without any extra,
+    /// // Data Package, information.
+    /// let data = lookup::lookup_phone_data(
+    ///     phone_number,
+    ///     &HashMap::new(),
+    ///     &Client::new(),
+    ///     &env::var("TWILIO_ACCOUNT_SID").unwrap(),
+    ///     &env::var("TWILIO_AUTH_TOKEN").unwrap()
+    /// )
+    /// .await
+    /// .expect(format!("Unable to retrieve data for {phone_number}").as_str());
+    ///
+    /// // Confirm whether the phone number was retrieved and valid or not
+    /// if data.is_valid() {
+    ///     println!("{phone_number} is valid");
+    /// } else {
+    ///     println!("{phone_number} is NOT valid")
+    /// }
+    /// # })
+    /// ```
+    ///
+    /// ## Query phone number details including Line Type Intelligence details
+    ///
+    /// ```rust,no_run
+    /// use reqwest::Client;
+    /// use rustlio::twilio::lookup;
+    /// use std::collections::HashMap;
+    /// use std::env;
+    ///
+    /// # tokio_test::block_on(async {
+    /// let phone_number = "+61123456789";
     ///
     /// // Setting a DataPackage to true indicates that it is to be in the lookup request.
     /// // You can add a DataPackage and set it to false, or just not include it to not
@@ -328,15 +364,31 @@ pub mod lookup {
     ///     (lookup::DataPackage::LineTypeIntelligence, true),
     /// ]);
     ///
+    /// // Perform a basic lookup of a phone number
+    /// // This will only return the basic details of the phone number, without any extra,
+    /// // Data Package, information.
     /// let data = lookup::lookup_phone_data(
-    ///     "+61123456789",
+    ///     phone_number,
     ///     &data_packages,
     ///     &Client::new(),
     ///     &env::var("TWILIO_ACCOUNT_SID").unwrap(),
     ///     &env::var("TWILIO_AUTH_TOKEN").unwrap()
-    /// );
+    /// )
+    /// .await
+    /// .expect(format!("Unable to retrieve data for {phone_number}").as_str());
+    ///
+    /// // If the phone number was valid, print out the carrier's name, if available.
+    /// if data.is_valid() {
+    ///     let line_type_intelligence = data.get_line_type_intelligence();
+    ///     if let Some(carrier_name) = line_type_intelligence.carrier_name {
+    ///         println!("The phone number's carrier is: {carrier_name}");
+    ///     }
+    /// } else {
+    ///     println!("{phone_number} is NOT valid")
+    /// }
+    /// # })
     /// ```
-    pub fn lookup_phone_data(
+    pub async fn lookup_phone_data(
         phone_number: &str,
         data_packages: &HashMap<DataPackage, bool>,
         client: &Client,
@@ -352,12 +404,13 @@ pub mod lookup {
         let response = client
             .get(request_url)
             .basic_auth(user, Some(password))
-            .send()?;
+            .send()
+            .await?;
 
         let result = response.error_for_status();
         match result {
             Ok(data) => {
-                let record: PhoneNumber = data.json()?;
+                let record: PhoneNumber = data.json().await?;
                 Ok(record)
             }
             Err(e) => Err(e),
@@ -379,13 +432,14 @@ pub mod lookup {
     /// use rustlio::twilio::lookup::lookup_phone_data_with_line_type;
     /// use std::env;
     ///
+    /// # tokio_test::block_on(async {
     /// // Attempt to retrieve a phone number with line type intelligence information.
     /// let data = lookup_phone_data_with_line_type(
     ///     "+61123456789",
-    ///     &reqwest::blocking::Client::new(),
+    ///     &reqwest::Client::new(),
     ///     &env::var("TWILIO_ACCOUNT_SID").unwrap(),
     ///     &env::var("TWILIO_AUTH_TOKEN").unwrap()
-    /// );
+    /// ).await;
     ///
     /// // Check if a valid phone number was returned, instantiating a default one, if not.
     /// let phone_number = match data {
@@ -395,8 +449,9 @@ pub mod lookup {
     ///
     /// // Check the phone number's line type.
     /// println!("{}", phone_number.get_line_type());
+    /// # })
     /// ```
-    pub fn lookup_phone_data_with_line_type(
+    pub async fn lookup_phone_data_with_line_type(
         phone_number: &str,
         client: &Client,
         user: &String,
@@ -409,6 +464,7 @@ pub mod lookup {
             user,
             password,
         )
+        .await
     }
 
     /// A convenience method for displaying the validation errors for an invalid phone number
