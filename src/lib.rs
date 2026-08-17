@@ -3,6 +3,7 @@
 pub mod lookup;
 pub mod messaging;
 pub mod security;
+pub mod verify;
 
 use reqwest::{Client, Response};
 use serde::{Deserialize, Serialize};
