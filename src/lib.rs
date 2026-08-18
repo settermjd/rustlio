@@ -5,9 +5,10 @@ pub mod messaging;
 pub mod security;
 pub mod verify;
 
-use reqwest::{Client, Response};
+use reqwest::{Client, Response, StatusCode};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use thiserror::Error;
 
 /// This models the response received from Twilio when a request is unsuccessful
 ///
@@ -67,4 +68,25 @@ impl<'a> ApiRequest for TwilioRestClient<'a> {
 
         request_builder.send().await
     }
+}
+
+#[derive(Error, Debug)]
+pub enum ApiError {
+    #[error("Network error: {0}")]
+    NetworkError(#[from] reqwest::Error),
+
+    #[error("Resource not found")]
+    NotFound,
+
+    #[error("Unauthorized - check your API credentials")]
+    Unauthorized,
+
+    #[error("Rate limited - try again later")]
+    RateLimited,
+
+    #[error("Server error: {0}")]
+    ServerError(String),
+
+    #[error("Unexpected status code: {0}")]
+    UnexpectedStatus(StatusCode),
 }
