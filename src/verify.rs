@@ -2,10 +2,11 @@
 
 use std::collections::HashMap;
 
+use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-use crate::{ApiRequest, TwilioRestClient};
+use crate::{ApiError, ApiRequest, TwilioRestClient};
 
 const VERIFY_BASE_URI: &str = "https://verify.twilio.com/v2/Services";
 
@@ -207,7 +208,7 @@ impl<'a> Verify<'a> {
         verify_service_sid: &str,
         send_to: &str,
         channel: &str,
-    ) -> Result<SendTokenResponse, reqwest::Error> {
+    ) -> Result<SendTokenResponse, ApiError> {
         let request_url = self.get_verify_base_uri(verify_service_sid, "Verifications");
         let request_params = HashMap::from([
             ("To".to_string(), send_to.to_string()),
@@ -215,15 +216,22 @@ impl<'a> Verify<'a> {
         ]);
         let response = self
             .client
-            .make_post_request(request_url.as_str(), &request_params);
+            .make_post_request(request_url.as_str(), &request_params)
+            .await?;
 
-        match response.await {
-            Ok(data) => {
-                let record = data.json::<SendTokenResponse>().await?;
-                println!("{:?}", record);
-                Ok(record)
+        match response.status() {
+            StatusCode::CREATED => {
+                let token_response = response.json::<SendTokenResponse>().await?;
+                Ok(token_response)
             }
-            Err(e) => Err(e),
+            StatusCode::NOT_FOUND => Err(ApiError::NotFound),
+            StatusCode::UNAUTHORIZED => Err(ApiError::Unauthorized),
+            StatusCode::TOO_MANY_REQUESTS => Err(ApiError::RateLimited),
+            status if status.is_server_error() => {
+                let body = response.text().await.unwrap_or_default();
+                Err(ApiError::ServerError(body))
+            }
+            status => Err(ApiError::UnexpectedStatus(status)),
         }
     }
 
@@ -267,21 +275,28 @@ impl<'a> Verify<'a> {
         &self,
         verify_service_sid: &str,
         check_params: VerificationCheckRequestParams,
-    ) -> Result<VerificationCheckResponse, reqwest::Error> {
+    ) -> Result<VerificationCheckResponse, ApiError> {
         let request_url = self.get_verify_base_uri(verify_service_sid, "VerificationCheck");
         let request_params: HashMap<String, String> = check_params.into();
-        println!("{:?}", request_params);
 
         let response = self
             .client
-            .make_post_request(request_url.as_str(), &request_params);
+            .make_post_request(request_url.as_str(), &request_params)
+            .await?;
 
-        match response.await {
-            Ok(data) => {
-                let record = data.json::<VerificationCheckResponse>().await?;
-                Ok(record)
+        match response.status() {
+            StatusCode::CREATED => {
+                let token_response = response.json::<VerificationCheckResponse>().await?;
+                Ok(token_response)
             }
-            Err(e) => Err(e),
+            StatusCode::NOT_FOUND => Err(ApiError::NotFound),
+            StatusCode::UNAUTHORIZED => Err(ApiError::Unauthorized),
+            StatusCode::TOO_MANY_REQUESTS => Err(ApiError::RateLimited),
+            status if status.is_server_error() => {
+                let body = response.text().await.unwrap_or_default();
+                Err(ApiError::ServerError(body))
+            }
+            status => Err(ApiError::UnexpectedStatus(status)),
         }
     }
 
@@ -323,7 +338,7 @@ mod tests {
 
         Mock::given(method("POST"))
             .and(path("/v2/Services/VAaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/Verifications"))
-            .respond_with(ResponseTemplate::new(200).set_body_raw(
+            .respond_with(ResponseTemplate::new(201).set_body_raw(
                 r##"{"sid":"VEaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","service_sid":"VAaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","account_sid":"ACaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","to":"+61123456789","channel":"sms","status":"approved","valid":false,"date_created":"2015-07-30T20:00:00Z","date_updated":"2015-07-30T20:00:00Z","lookup":{},"amount":null,"payee":null,"send_code_attempts":[{"time":"2015-07-30T20:00:00Z","channel":"SMS","attempt_sid":"VLaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}],"sna":null,"url":"https://verify.twilio.com/v2/Services/VAaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/Verifications/VEaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}"##,
                 "application/json",
             ))
@@ -353,7 +368,7 @@ mod tests {
 
         Mock::given(method("POST"))
             .and(path("/v2/Services/VAaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/VerificationCheck"))
-            .respond_with(ResponseTemplate::new(200).set_body_raw(
+            .respond_with(ResponseTemplate::new(201).set_body_raw(
                 r##"{"sid":"VEaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","service_sid":"VAaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","account_sid":"ACaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","to":"+15017122661","channel":"sms","status":"approved","valid":true,"amount":null,"payee":null,"sna_attempts_error_codes":[],"date_created":"2015-07-30T20:00:00Z","date_updated":"2015-07-30T20:00:00Z"}"##,
                 "application/json",
             ))
