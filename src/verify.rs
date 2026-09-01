@@ -301,9 +301,9 @@ impl Verify {
     }
 
     /// A small utility function for retrieving the Verify API base URL
-    fn get_verify_base_uri(&self, verify_service_sid: &str, endpoint: &str) -> Url {
+    fn get_verify_base_uri(&self, verify_service_sid: &str, path: &str) -> Url {
         Url::parse(&format!(
-            "{base_uri}/{verify_service_sid}/{endpoint}",
+            "{base_uri}/{verify_service_sid}/{path}",
             base_uri = self.base_uri,
         ))
         .expect("Unable to parse the provided URL")
