@@ -12,9 +12,9 @@ const VERIFY_BASE_URI: &str = "https://verify.twilio.com/v2/Services";
 
 #[derive(Debug, Default, Deserialize, Serialize)]
 pub struct SendCodeAttempt {
-    pub time: Option<String>,
-    pub channel: Option<String>,
     pub attempt_sid: Option<String>,
+    pub channel: Option<String>,
+    pub time: Option<String>,
 }
 
 #[derive(Debug, Default, Deserialize, Serialize)]
@@ -35,18 +35,18 @@ pub struct Sna {
 /// [in the documentation](https://www.twilio.com/docs/lookup/v2-api#response-properties).
 #[derive(Debug, Default, Deserialize, Serialize)]
 pub struct SendTokenResponse {
-    pub sid: Option<String>,
-    pub service_sid: Option<String>,
     pub account_sid: Option<String>,
-    pub to: Option<String>,
+    pub amount: Option<String>,
     pub channel: Option<String>,
-    pub status: Option<String>,
     pub date_created: Option<String>,
     pub date_updated: Option<String>,
-    pub amount: Option<String>,
     pub payee: Option<String>,
     pub send_code_attempts: Option<Vec<SendCodeAttempt>>,
+    pub service_sid: Option<String>,
+    pub sid: Option<String>,
     pub sna: Option<Sna>,
+    pub status: Option<String>,
+    pub to: Option<String>,
     pub url: Option<String>,
     pub valid: bool,
 }
