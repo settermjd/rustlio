@@ -154,26 +154,26 @@ impl From<VerificationCheckRequestParams> for HashMap<String, String> {
 /// It requires a TwilioRestClient for making calls to the Verify API and a
 /// base_uri for knowing the base URI of the Verify API, on which each different
 /// type of request can be based.
-#[derive(Debug, Clone)]
-pub struct Verify<'a> {
-    pub client: &'a TwilioRestClient<'a>,
+#[derive(Debug)]
+pub struct Verify {
+    pub client: TwilioRestClient,
     pub base_uri: String,
 }
 
 /// Provides a default implementation of a Verify struct
-impl<'a> Default for Verify<'a> {
+impl Default for Verify {
     fn default() -> Self {
         Self {
             base_uri: VERIFY_BASE_URI.to_string(),
-            client: &TwilioRestClient {
-                account_sid: "",
-                auth_token: "",
+            client: TwilioRestClient {
+                account_sid: String::from(""),
+                auth_token: String::from(""),
             },
         }
     }
 }
 
-impl<'a> Verify<'a> {
+impl Verify {
     /// Sends a verification (OTP) token to the required device using the specified channel
     ///
     /// # Examples
@@ -187,9 +187,9 @@ impl<'a> Verify<'a> {
     ///
     /// # tokio_test::block_on(async {
     /// let verify = Verify {
-    ///     client: &TwilioRestClient {
-    ///         account_sid: "<Your Twilio Account SID>",
-    ///         auth_token: "<Your Twilio Auth Token>",
+    ///     client: TwilioRestClient {
+    ///         account_sid: "<Your Twilio Account SID>".to_string(),
+    ///         auth_token: "<Your Twilio Auth Token>".to_string(),
     ///     },
     ///     ..Default::default()
     /// };
@@ -249,9 +249,9 @@ impl<'a> Verify<'a> {
     ///
     /// # tokio_test::block_on(async {
     /// let verify = Verify {
-    ///     client: &TwilioRestClient {
-    ///         account_sid: "<Your Twilio Account SID>",
-    ///         auth_token: "<Your Twilio Auth Token>",
+    ///     client: TwilioRestClient {
+    ///         account_sid: "<Your Twilio Account SID>".to_string(),
+    ///         auth_token: "<Your Twilio Auth Token>".to_string(),
     ///     },
     ///     ..Default::default()
     /// };

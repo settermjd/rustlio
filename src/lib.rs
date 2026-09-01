@@ -33,9 +33,9 @@ trait ApiRequest {
 
 /// TwilioRestClient encapsulates a Reqwest Client that makes requests to Twilio's APIs
 #[derive(Debug, Default)]
-pub struct TwilioRestClient<'a> {
-    pub account_sid: &'a str,
-    pub auth_token: &'a str,
+pub struct TwilioRestClient {
+    pub account_sid: String,
+    pub auth_token: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -44,7 +44,7 @@ pub enum RequestValue {
     Int(i32),
 }
 
-impl<'a> ApiRequest for TwilioRestClient<'a> {
+impl ApiRequest for TwilioRestClient {
     /// make_post_request makes async POST requests using a Reqwest Client
     ///
     /// As each of Twilio's API endpoints can have different domains and/or different paths, the
@@ -59,7 +59,7 @@ impl<'a> ApiRequest for TwilioRestClient<'a> {
         let client = &Client::new();
         let mut request_builder = client
             .post(request_url)
-            .basic_auth(self.account_sid, Some(self.auth_token));
+            .basic_auth(&self.account_sid, Some(&self.auth_token));
 
         if !request_params.is_empty() {
             println!("Request params: {:?}", request_params);
