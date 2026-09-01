@@ -20,7 +20,7 @@ pub struct SendCodeAttempt {
 
 #[derive(Debug, Default, Deserialize, Serialize)]
 pub struct Sna {
-    pub sna: Option<String>,
+    pub url: Option<String>,
 }
 
 /// This models the phone number information that is returned from requests to the API
