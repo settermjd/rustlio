@@ -7,7 +7,7 @@ edition = "2024"
 license = "MIT OR Apache-2.0"
 name = "rustlio"
 keywords = ["Twilio"]
-readme = "README.adoc"
+readme = "README.md"
 version = "0.3.1"
 
 [dependencies]
