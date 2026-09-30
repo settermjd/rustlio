@@ -518,19 +518,11 @@ impl Verify {
             .make_post_request(request_url.as_str(), &request_params)
             .await?;
 
-        match response.status() {
-            StatusCode::CREATED => {
-                let token_response = response.json::<FactorResource>().await?;
-                Ok(token_response)
-            }
-            StatusCode::NOT_FOUND => Err(ApiError::NotFound),
-            StatusCode::UNAUTHORIZED => Err(ApiError::Unauthorized),
-            StatusCode::TOO_MANY_REQUESTS => Err(ApiError::RateLimited),
-            status if status.is_server_error() => {
-                let body = response.text().await.unwrap_or_default();
-                Err(ApiError::ServerError(body))
-            }
-            status => Err(ApiError::UnexpectedStatus(status)),
+        if response.status() == StatusCode::CREATED {
+            let token_response = response.json::<FactorResource>().await?;
+            Ok(token_response)
+        } else {
+            Err(self.get_api_error(response.status(), response.text().await.unwrap_or_default()))
         }
     }
 
@@ -548,19 +540,24 @@ impl Verify {
             .make_post_request(request_url.as_str(), &request_params)
             .await?;
 
-        match response.status() {
-            StatusCode::CREATED => {
-                let token_response = response.json::<ChallengeResource>().await?;
-                Ok(token_response)
-            }
-            StatusCode::NOT_FOUND => Err(ApiError::NotFound),
-            StatusCode::UNAUTHORIZED => Err(ApiError::Unauthorized),
-            StatusCode::TOO_MANY_REQUESTS => Err(ApiError::RateLimited),
-            status if status.is_server_error() => {
-                let body = response.text().await.unwrap_or_default();
-                Err(ApiError::ServerError(body))
-            }
-            status => Err(ApiError::UnexpectedStatus(status)),
+        if response.status() == StatusCode::CREATED {
+            let token_response = response.json::<ChallengeResource>().await?;
+            Ok(token_response)
+        } else {
+            Err(self.get_api_error(response.status(), response.text().await.unwrap_or_default()))
+        }
+    }
+
+    /// Returns an ApiError based on the status code provided
+    ///
+    /// It's a generic, reusable way of handling errors returned from API requests.
+    pub fn get_api_error(&self, status: StatusCode, response_text: String) -> ApiError {
+        match status {
+            StatusCode::NOT_FOUND => ApiError::NotFound,
+            StatusCode::UNAUTHORIZED => ApiError::Unauthorized,
+            StatusCode::TOO_MANY_REQUESTS => ApiError::RateLimited,
+            status if status.is_server_error() => ApiError::ServerError(response_text),
+            status => ApiError::UnexpectedStatus(status),
         }
     }
 
