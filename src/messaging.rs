@@ -1,13 +1,10 @@
 //! Structs, functions, etc for working with Twilio's Messaging API endpoint
-use std::collections::HashMap;
-
 use crate::{ApiError, ApiRequest, TwilioRestClient};
 
 use http::StatusCode;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use url::Url;
 
-const MAX_MEDIA_URLS: usize = 10;
 const MESSAGE_BASE_URI: &str = "https://api.twilio.com/2010-04-01/Accounts";
 
 /// This models the response received from Twilio when messages are successfully sent
@@ -48,33 +45,33 @@ pub struct SubresourceUris {
     pub media: Option<String>,
 }
 
-#[derive(Clone, Debug, Default, Deserialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub enum ContentRetention {
     Disregard,
     #[default]
     Retain,
 }
 
-#[derive(Clone, Debug, Default, Deserialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub enum AddressRetention {
     Obfuscate,
     #[default]
     Retain,
 }
 
-#[derive(Clone, Debug, Default, Deserialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub enum TrafficType {
     #[default]
     Free,
 }
 
-#[derive(Clone, Debug, Default, Deserialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub enum ScheduleType {
     #[default]
     Fixed,
 }
 
-#[derive(Clone, Debug, Default, Deserialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub enum RiskCheck {
     #[default]
     Enable,
@@ -82,7 +79,7 @@ pub enum RiskCheck {
 }
 
 /// Models the request body parameters that can be sent to the Messaging endpoint when making a request
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct MessageRequestBodyParams {
     pub to: String,
     pub status_callback: Option<String>,
@@ -109,322 +106,6 @@ pub struct MessageRequestBodyParams {
     pub body: Option<String>,
     pub media_url: Option<Vec<String>>,
     pub content_sid: Option<String>,
-}
-
-impl TryFrom<&MessageRequestBodyParams> for HashMap<String, String> {
-    type Error = &'static str;
-
-    /// Attempts to transform a MessageRequestBodyParams into a HashMap
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use rustlio::messaging::ContentRetention::Disregard;
-    /// use rustlio::messaging::MessageRequestBodyParams;
-    /// use std::collections::HashMap;
-    ///
-    /// let params = MessageRequestBodyParams {
-    ///     address_retention: None,
-    ///     application_sid: None,
-    ///     attempt: None,
-    ///     body: Some("Hi there".to_string()),
-    ///     content_retention: Some(Disregard),
-    ///     content_sid: None,
-    ///     content_variables: None,
-    ///     fallback_from: None,
-    ///     force_delivery: None,
-    ///     from: Some("+12132635137".to_string()),
-    ///     max_price: None,
-    ///     media_url: None,
-    ///     messaging_service_sid: None,
-    ///     persistent_action: None,
-    ///     provide_feedback: None,
-    ///     risk_check: None,
-    ///     schedule_type: None,
-    ///     send_as_mms: None,
-    ///     send_at: None,
-    ///     shorten_urls: None,
-    ///     smart_encoded: None,
-    ///     status_callback: None,
-    ///     to: "+61123456789".to_string(),
-    ///     traffic_type: None,
-    ///     validity_period: None,
-    /// };
-    ///
-    /// let params_map = HashMap::<String, String>::try_from(&params);
-    /// ```
-    fn try_from(val: &MessageRequestBodyParams) -> Result<Self, Self::Error> {
-        let mut map: HashMap<String, String> = HashMap::from([("To".to_string(), val.to.clone())]);
-
-        if val.status_callback.is_some() {
-            map.insert(
-                "StatusCallback".to_string(),
-                val.status_callback.clone().unwrap_or("".to_string()),
-            );
-        }
-
-        if val.application_sid.is_some() {
-            map.insert(
-                "ApplicationSid".to_string(),
-                val.application_sid.clone().unwrap_or("".to_string()),
-            );
-        }
-
-        if val.send_at.is_some() {
-            map.insert(
-                "SendAt".to_string(),
-                val.send_at.clone().unwrap_or("".to_string()),
-            );
-        }
-
-        if val.content_variables.is_some() {
-            map.insert(
-                "ContentVariables".to_string(),
-                val.content_variables.clone().unwrap_or("".to_string()),
-            );
-        }
-
-        if val.fallback_from.is_some() {
-            map.insert(
-                "FallbackFrom".to_string(),
-                val.fallback_from.clone().unwrap_or("".to_string()),
-            );
-        }
-
-        if val.risk_check.is_some() {
-            let risk_check = match val.risk_check.clone().unwrap_or_default() {
-                RiskCheck::Enable => "enable",
-                RiskCheck::Disable => "disable",
-            };
-            map.insert("RiskCheck".to_string(), risk_check.to_string());
-        }
-
-        if val.schedule_type.is_some() {
-            let schedule_type = match val.schedule_type.clone().unwrap_or_default() {
-                ScheduleType::Fixed => "fixed",
-            };
-            map.insert("ScheduleType".to_string(), schedule_type.to_string());
-        }
-
-        if val.traffic_type.is_some() {
-            let traffic_type = match val.traffic_type.clone().unwrap_or_default() {
-                TrafficType::Free => "free",
-            };
-            map.insert("TrafficType".to_string(), traffic_type.to_string());
-        }
-
-        if val.address_retention.is_some() {
-            let address_retention = match val.address_retention.clone().unwrap_or_default() {
-                AddressRetention::Obfuscate => "obfuscate",
-                AddressRetention::Retain => "retain",
-            };
-            map.insert(
-                "AddressRetention".to_string(),
-                address_retention.to_string(),
-            );
-        }
-
-        if val.content_retention.is_some() {
-            let content_retention = match val.content_retention.clone().unwrap_or_default() {
-                ContentRetention::Disregard => "disregard",
-                ContentRetention::Retain => "retain",
-            };
-            map.insert(
-                "ContentRetention".to_string(),
-                content_retention.to_string(),
-            );
-        }
-
-        if val.from.is_none() && val.messaging_service_sid.is_none() {
-            return Err("Either the from or messaging service SID is required");
-        } else {
-            if val.from.is_some() {
-                map.insert("From".to_string(), val.from.clone().unwrap_or_default());
-            }
-
-            if val.messaging_service_sid.is_some() {
-                map.insert(
-                    "MessagingServiceSid".to_string(),
-                    val.messaging_service_sid.clone().unwrap_or_default(),
-                );
-            }
-        }
-
-        if val.send_as_mms.is_some() {
-            map.insert(
-                "SendAsMms".to_string(),
-                val.send_as_mms.unwrap_or(false).to_string(),
-            );
-        }
-
-        if val.shorten_urls.is_some() {
-            map.insert(
-                "ShortenUrls".to_string(),
-                val.shorten_urls.unwrap_or(false).to_string(),
-            );
-        }
-
-        if val.smart_encoded.is_some() {
-            map.insert(
-                "SmartEncoded".to_string(),
-                val.smart_encoded.unwrap_or(false).to_string(),
-            );
-        }
-
-        if val.force_delivery.is_some() {
-            map.insert(
-                "ForceDelivery".to_string(),
-                val.force_delivery.unwrap_or(false).to_string(),
-            );
-        }
-
-        if val.provide_feedback.is_some() {
-            map.insert(
-                "ProvideFeedback".to_string(),
-                val.provide_feedback.unwrap_or(false).to_string(),
-            );
-        }
-
-        if val.max_price.is_some() {
-            map.insert(
-                "MaxPrice".to_string(),
-                val.max_price.unwrap_or_default().to_string(),
-            );
-        }
-
-        if val.attempt.is_some() {
-            map.insert(
-                "Attempt".to_string(),
-                val.attempt.unwrap_or_default().to_string(),
-            );
-        }
-
-        if val.validity_period.is_some() {
-            map.insert(
-                "ValidityPeriod".to_string(),
-                val.validity_period.unwrap_or_default().to_string(),
-            );
-        }
-
-        if val.body.is_none() && val.media_url.is_none() && val.content_sid.is_none() {
-            return Err("A body, media URL, or content SID is required.");
-        } else {
-            if val.body.is_some() {
-                map.insert("Body".to_string(), val.body.clone().unwrap_or_default());
-            }
-
-            let mut range_max = MAX_MEDIA_URLS;
-            let mut media_url = val.media_url.clone().unwrap_or_default();
-            if media_url.len() < MAX_MEDIA_URLS {
-                range_max = media_url.len();
-            }
-
-            for url in &mut media_url[0..range_max] {
-                map.insert("MediaUrl".to_string(), url.clone());
-            }
-
-            if val.content_sid.is_some() {
-                map.insert(
-                    "ContentSid".to_string(),
-                    val.content_sid.clone().unwrap_or_default(),
-                );
-            }
-        }
-
-        Ok(map)
-    }
-}
-
-impl TryFrom<HashMap<String, String>> for MessageRequestBodyParams {
-    type Error = &'static str;
-
-    /// Attempts to transform a HashMap into a MessageRequestBodyParams
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use rustlio::messaging::MessageRequestBodyParams;
-    /// use std::collections::HashMap;
-    ///
-    /// let message_params = MessageRequestBodyParams::try_from(HashMap::from([
-    ///     ("to".to_string(), "+61123456789".to_string()),
-    ///     ("from".to_string(), "+1987654321".to_string()),
-    ///     ("body".to_string(), "Hi there".to_string()),
-    /// ]));
-    /// ```
-    fn try_from(value: HashMap<String, String>) -> Result<Self, Self::Error> {
-        let params = MessageRequestBodyParams {
-            to: value.get("to").map_or("", |v| v).to_string(),
-            status_callback: value.get("status_callback").map(|v| v.to_string()),
-            application_sid: value.get("application_sid").map(|v| v.to_string()),
-            max_price: value.get("max_price").map(|v| v.parse::<usize>().unwrap()),
-            provide_feedback: value
-                .get("provide_feedback")
-                .map(|v| v.parse::<bool>().unwrap()),
-            attempt: value.get("attempt").map(|v| v.parse::<usize>().unwrap()),
-            validity_period: value
-                .get("validity_period")
-                .map(|v| v.parse::<usize>().unwrap()),
-            force_delivery: value
-                .get("force_delivery")
-                .map(|v| v.parse::<bool>().unwrap()),
-            content_retention: value
-                .get("content_retention")
-                .and_then(|v| match v.as_str() {
-                    "disregard" => Some(ContentRetention::Disregard),
-                    "retain" => Some(ContentRetention::Retain),
-                    _ => None,
-                }),
-            address_retention: value.get("address_retention").and_then(|v| {
-                if v.eq_ignore_ascii_case("obfuscate") {
-                    return Some(AddressRetention::Obfuscate);
-                }
-                if v.eq_ignore_ascii_case("retain") {
-                    return Some(AddressRetention::Obfuscate);
-                }
-                None
-            }),
-            smart_encoded: value
-                .get("smart_encoded")
-                .map(|v| v.parse::<bool>().unwrap()),
-            persistent_action: value.get("persistent_action").map(|v| vec![v.to_string()]),
-            traffic_type: value.get("traffic_type").and_then(|v| {
-                if v.eq_ignore_ascii_case("free") {
-                    return Some(TrafficType::Free);
-                }
-                None
-            }),
-            shorten_urls: value
-                .get("shorten_urls")
-                .map(|v| v.parse::<bool>().unwrap()),
-            schedule_type: value.get("schedule_type").and_then(|v| {
-                if v.eq_ignore_ascii_case("fixed") {
-                    return Some(ScheduleType::Fixed);
-                }
-                None
-            }),
-            send_at: value.get("send_at").map(|v| v.to_string()),
-            send_as_mms: value.get("send_as_mms").map(|v| v.parse::<bool>().unwrap()),
-            content_variables: value.get("content_variables").map(|v| v.to_string()),
-            risk_check: value.get("risk_check").and_then(|v| {
-                if v.eq_ignore_ascii_case("enable") {
-                    return Some(RiskCheck::Enable);
-                }
-                if v.eq_ignore_ascii_case("disable") {
-                    return Some(RiskCheck::Disable);
-                }
-                None
-            }),
-            from: value.get("from").map(|v| v.to_string()),
-            fallback_from: value.get("fallback_from").map(|v| v.to_string()),
-            messaging_service_sid: value.get("messaging_service_sid").map(|v| v.to_string()),
-            body: value.get("body").map(|v| v.to_string()),
-            media_url: value.get("media_url").map(|v| vec![v.to_string()]),
-            content_sid: value.get("content_sid").map(|v| v.to_string()),
-        };
-
-        Ok(params)
-    }
 }
 
 #[derive(Debug)]
@@ -483,13 +164,13 @@ impl Message {
     ///     },
     ///     ..Default::default()
     /// };
-    /// let message_params = MessageRequestBodyParams::try_from(HashMap::from([
+    /// let message_params = [
     ///     ("to".to_string(), "+61123456789".to_string()),
     ///     ("from".to_string(), "+1987654321".to_string()),
     ///     ("body".to_string(), "Hi there. How are you?".to_string()),
-    /// ]));
+    /// ];
     /// let response = message_service
-    ///     .send_message(&message_params.unwrap())
+    ///     .send_message(&message_params)
     ///     .await
     ///     .expect("Should have returned a result");
     /// let status = match response.status {
@@ -499,20 +180,15 @@ impl Message {
     /// println!("Message status was {status}");
     /// # })
     /// ```
-    pub async fn send_message(
+    pub async fn send_message<T: Serialize + ?Sized>(
         &self,
-        request_params: &MessageRequestBodyParams,
+        request_params: &T,
     ) -> Result<MessageResource, ApiError> {
         let request_url = self.get_base_uri();
-        let Ok(params) = HashMap::try_from(request_params) else {
-            return Err(ApiError::ServerError(String::from(
-                "could not create hashmap of request params",
-            )));
-        };
 
         let response = self
             .client
-            .make_post_request(request_url.as_str(), &params)
+            .make_post_request(request_url.as_str(), request_params)
             .await?;
 
         match response.status() {
@@ -560,38 +236,6 @@ mod tests {
         );
     }
 
-    fn can_create_hashmap_from_message_request_body_params() {
-        let params = MessageRequestBodyParams {
-            address_retention: None,
-            application_sid: None,
-            attempt: None,
-            body: Some("Hi there".to_string()),
-            content_retention: Some(ContentRetention::Disregard),
-            content_sid: None,
-            content_variables: None,
-            fallback_from: None,
-            force_delivery: None,
-            from: Some("+12132635137".to_string()),
-            max_price: None,
-            media_url: None,
-            messaging_service_sid: None,
-            persistent_action: None,
-            provide_feedback: None,
-            risk_check: None,
-            schedule_type: None,
-            send_as_mms: None,
-            send_at: None,
-            shorten_urls: None,
-            smart_encoded: None,
-            status_callback: None,
-            to: "+61123456789".to_string(),
-            traffic_type: None,
-            validity_period: None,
-        };
-        let params_map = HashMap::<String, String>::try_from(&params).unwrap();
-        assert_eq!(params_map.get("Body"), Some(&"Hi".to_string()));
-    }
-
     #[tokio::test]
     async fn can_send_an_sms() {
         let mock_server = MockServer::start().await;
@@ -612,13 +256,54 @@ mod tests {
                 auth_token: String::from("1fcccccccccccccccccccccccccccccc"),
             },
         };
-        let message_params = MessageRequestBodyParams::try_from(HashMap::from([
+        let message_params = [
             ("to".to_string(), "+1123456789".to_string()),
             ("from".to_string(), "+1987654321".to_string()),
             ("body".to_string(), "Hi there".to_string()),
-        ]));
+        ];
         let response = message_service
-            .send_message(&message_params.unwrap())
+            .send_message(&message_params)
+            .await
+            .expect("Should have returned a result");
+        let status = match response.status {
+            Some(status) => status,
+            None => "".to_string(),
+        };
+
+        assert_eq!(status, "queued".to_string());
+    }
+
+    #[tokio::test]
+    async fn can_send_an_mms() {
+        let mock_server = MockServer::start().await;
+
+        Mock::given(method("POST"))
+            .and(path("/2010-04-01/Accounts/ACXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX/Messages.json"))
+            .respond_with(ResponseTemplate::new(201).set_body_raw(
+                r##"{"account_sid":"ACXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX","api_version":"2010-04-01","body":"Hi there","date_created":"Thu, 24 Aug 2023 05:01:45 +0000","date_sent":"Thu, 24 Aug 2023 05:01:45 +0000","date_updated":"Thu, 24 Aug 2023 05:01:45 +0000","direction":"outbound-api","error_code":null,"error_message":null,"from":"+1987654321","num_media":"0","num_segments":"1","price":null,"price_unit":null,"messaging_service_sid":"MGaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","sid":"SMaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","status":"queued","subresource_uris":{"media":"/2010-04-01/Accounts/ACaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/Messages/SMaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/Media.json"},"to":"+1123456789","uri":"/2010-04-01/Accounts/ACaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/Messages/SMaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.json"}"##,
+                "application/json",
+            ))
+            .mount(&mock_server)
+            .await;
+
+        let message_service = Message {
+            base_uri: mock_server.uri() + "/2010-04-01/Accounts",
+            client: TwilioRestClient {
+                account_sid: String::from("ACXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"),
+                auth_token: String::from("1fcccccccccccccccccccccccccccccc"),
+            },
+        };
+        let message_params = [
+            ("to".to_string(), "+1123456789".to_string()),
+            ("from".to_string(), "+1987654321".to_string()),
+            ("body".to_string(), "Hi there".to_string()),
+            (
+                "media_url".to_string(),
+                "https://c1.staticflickr.com/3/2899/14341091933_1e92e62d12_b.jpg".to_string(),
+            ),
+        ];
+        let response = message_service
+            .send_message(&message_params)
             .await
             .expect("Should have returned a result");
         let status = match response.status {
