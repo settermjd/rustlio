@@ -7,6 +7,7 @@ pub mod verify;
 
 use reqwest::{Client, Response, StatusCode};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use thiserror::Error;
 
 /// This models the response received from Twilio when a request is unsuccessful
@@ -23,10 +24,10 @@ pub struct ErrorResponse {
 }
 
 trait ApiRequest {
-    async fn make_post_request<T: Serialize + ?Sized>(
+    async fn make_post_request(
         &self,
         request_url: &str,
-        request_params: &T,
+        request_params: &HashMap<String, String>,
     ) -> Result<Response, reqwest::Error>;
 }
 
@@ -50,16 +51,21 @@ impl ApiRequest for TwilioRestClient {
     /// request URL must be provided to the function. That aside, the function takes an optional
     /// HashMap of request parameters to be used with the request and returns the response from
     /// making the request.
-    async fn make_post_request<T: Serialize + ?Sized>(
+    async fn make_post_request(
         &self,
         request_url: &str,
-        request_params: &T,
+        request_params: &HashMap<String, String>,
     ) -> Result<Response, reqwest::Error> {
         let client = &Client::new();
         let mut request_builder = client
             .post(request_url)
             .basic_auth(&self.account_sid, Some(&self.auth_token));
-        request_builder = request_builder.form(&request_params);
+
+        if !request_params.is_empty() {
+            println!("Request params: {:?}", request_params);
+            request_builder = request_builder.form(&request_params);
+        }
+
         request_builder.send().await
     }
 }

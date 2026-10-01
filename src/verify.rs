@@ -76,7 +76,6 @@ pub struct VerificationCheckResponse {
 /// Models the request body parameters to the start new verification endpoint
 ///
 /// See [the documentation](https://www.twilio.com/docs/verify/api/verification#request-body-parameters) for full details.
-#[derive(Serialize)]
 pub struct StartVerificationRequestParams<'a> {
     pub to: &'a str,
     pub channel: &'a str,
@@ -97,7 +96,7 @@ pub struct StartVerificationRequestParams<'a> {
 /// Models the request body parameters to the check verification endpoint
 ///
 /// See [the documentation](https://www.twilio.com/docs/verify/api/verification-check#request-body-parameters) for full details.
-#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize)]
 pub struct VerificationCheckRequestParams {
     pub amount: String,
     pub code: String,
@@ -108,15 +107,6 @@ pub struct VerificationCheckRequestParams {
 }
 
 /// Models the response from a Create New Factor API request.
-///
-/// Quoting [the Twilio documentation](https://www.twilio.com/docs/verify/api/factor):
-///
-/// > The Factor resource is used by Verify Push and Verify TOTP (Time-based One-Time Password)
-/// > features. It represents a verification factor/channel. When the factor_type is push, it contains
-/// > the public key for a single registered device and metadata. When the factor_type is totp, it
-/// > contains the seed used to generate TOTP codes and metadata. Some Factor properties apply to all
-/// > factor_types and others do not. A single Entity links to multiple Factors and a single Factor
-/// > links to multiple Challenges.
 ///
 /// See [the documentation](https://www.twilio.com/docs/verify/api/factor#factor-properties) for
 /// more information.
@@ -137,7 +127,6 @@ pub struct FactorResource {
     pub url: bool,
 }
 
-#[derive(Serialize)]
 pub enum FactorType {
     Passkeys,
     Push,
@@ -149,11 +138,28 @@ pub enum FactorType {
 /// See [the
 /// documentation](https://www.twilio.com/docs/verify/api/factor#create-a-new-factor-resource) for
 /// full details.
-#[derive(Serialize)]
 pub struct CreateNewFactorRequestParams {
     pub friendly_name: String,
     pub factor_type: FactorType,
     pub metadata: Option<String>,
+}
+
+impl From<CreateNewFactorRequestParams> for HashMap<String, String> {
+    fn from(val: CreateNewFactorRequestParams) -> Self {
+        let factor_type = match val.factor_type {
+            FactorType::Passkeys => String::from("passkeys"),
+            FactorType::Push => String::from("push"),
+            FactorType::Totp => String::from("totp"),
+        };
+        HashMap::from([
+            ("FriendlyName".to_string(), val.friendly_name),
+            ("FactorType".to_string(), factor_type),
+            (
+                "Metadata".to_string(),
+                val.metadata.unwrap_or("".to_string()),
+            ),
+        ])
+    }
 }
 
 /// Models the request body parameters to the Update Factor endpoint
@@ -161,10 +167,24 @@ pub struct CreateNewFactorRequestParams {
 /// See [the
 /// documentation](https://www.twilio.com/docs/verify/api/factor#request-body-parameters-1) for
 /// full details.
-#[derive(Serialize)]
 pub struct UpdateFactorRequestParams {
     pub auth_payload: Option<String>,
     pub friendly_name: Option<String>,
+}
+
+impl From<UpdateFactorRequestParams> for HashMap<String, String> {
+    fn from(val: UpdateFactorRequestParams) -> Self {
+        HashMap::from([
+            (
+                "AuthPayload".to_string(),
+                val.auth_payload.unwrap_or("".to_string()),
+            ),
+            (
+                "FriendlyName".to_string(),
+                val.friendly_name.unwrap_or("".to_string()),
+            ),
+        ])
+    }
 }
 
 /// Models the request body parameters to the Create Challenge endpoint
@@ -172,12 +192,31 @@ pub struct UpdateFactorRequestParams {
 /// See [the
 /// documentation](https://www.twilio.com/docs/verify/api/challenge#request-body-parameters) for
 /// full details.
-#[derive(Serialize)]
 pub struct CreateChallengeRequestParams {
     pub auth_payload: Option<String>,
     pub expiration_date: Option<String>,
     pub factor_sid: String,
     pub hidden_details: Option<String>,
+}
+
+impl From<CreateChallengeRequestParams> for HashMap<String, String> {
+    fn from(val: CreateChallengeRequestParams) -> Self {
+        HashMap::from([
+            ("FactorSid".to_string(), val.factor_sid),
+            (
+                "AuthPayload".to_string(),
+                val.auth_payload.unwrap_or("".to_string()),
+            ),
+            (
+                "ExpirationDate".to_string(),
+                val.expiration_date.unwrap_or("".to_string()),
+            ),
+            (
+                "HiddenDetails".to_string(),
+                val.hidden_details.unwrap_or("".to_string()),
+            ),
+        ])
+    }
 }
 
 /// Models the response from a Verification Check API request.
@@ -199,6 +238,50 @@ pub struct ChallengeResource {
     pub status: Option<String>,
     pub to: Option<String>,
     pub valid: bool,
+}
+
+impl VerificationCheckRequestParams {
+    /// Returns the value of a VerificationCheckRequestParams field.
+    ///
+    /// It was created to allow for programmatic retrieval of values from
+    /// VerificationCheckRequestParams objects while converting them to a
+    /// HashMap. Might be useful for other conversions and operations as well.
+    fn get(&self, field: &str) -> Result<String, String> {
+        match field {
+            "amount" => Ok(self.amount.clone()),
+            "code" => Ok(self.code.clone()),
+            "payee" => Ok(self.payee.clone()),
+            "sna_client_token" => Ok(self.sna_client_token.clone()),
+            "to" => Ok(self.to.clone()),
+            "verification_sid" => Ok(self.verification_sid.clone()),
+            _ => Err(format!("invalid field name to get '{}'", field)),
+        }
+    }
+}
+
+/// A simplistic type conversion from a VerificationCheckRequestParams object
+/// into a HashMap.
+impl From<VerificationCheckRequestParams> for HashMap<String, String> {
+    fn from(val: VerificationCheckRequestParams) -> Self {
+        let mut map = HashMap::new();
+        let fields = vec![
+            "amount",
+            "code",
+            "payee",
+            "sna_client_token",
+            "to",
+            "verification_sid",
+        ];
+        for field_name in fields.into_iter() {
+            if let Ok(field_value) = val.get(field_name)
+                && !field_value.is_empty()
+            {
+                map.insert(stringcase::pascal_case(field_name), field_value);
+            }
+        }
+
+        map
+    }
 }
 
 // A custom error type for handling errors constructing Verify URLs.
@@ -278,10 +361,10 @@ impl Verify {
         channel: &str,
     ) -> Result<SendTokenResponse, ApiError> {
         let request_url = self.get_verify_base_uri(verify_service_sid, "Verifications");
-        let request_params = [
+        let request_params = HashMap::from([
             ("To".to_string(), send_to.to_string()),
             ("Channel".to_string(), channel.to_string()),
-        ];
+        ]);
         let response = self
             .client
             .make_post_request(request_url.as_str(), &request_params)
@@ -345,10 +428,11 @@ impl Verify {
         check_params: VerificationCheckRequestParams,
     ) -> Result<VerificationCheckResponse, ApiError> {
         let request_url = self.get_verify_base_uri(verify_service_sid, "VerificationCheck");
+        let request_params: HashMap<String, String> = check_params.into();
 
         let response = self
             .client
-            .make_post_request(request_url.as_str(), &check_params)
+            .make_post_request(request_url.as_str(), &request_params)
             .await?;
 
         match response.status() {
@@ -380,9 +464,11 @@ impl Verify {
             )
             .map_err(|e| ApiError::ServerError(e.to_string()))?;
 
+        let request_params: HashMap<String, String> = check_params.into();
+
         let response = self
             .client
-            .make_post_request(request_url.as_str(), &check_params)
+            .make_post_request(request_url.as_str(), &request_params)
             .await?;
 
         match response.status() {
@@ -425,10 +511,11 @@ impl Verify {
         check_params: UpdateFactorRequestParams,
     ) -> Result<FactorResource, ApiError> {
         let request_url = self.get_verify_base_uri(verify_service_sid, "VerificationCheck");
+        let request_params: HashMap<String, String> = check_params.into();
 
         let response = self
             .client
-            .make_post_request(request_url.as_str(), &check_params)
+            .make_post_request(request_url.as_str(), &request_params)
             .await?;
 
         if response.status() == StatusCode::CREATED {
@@ -446,10 +533,11 @@ impl Verify {
         check_params: CreateChallengeRequestParams,
     ) -> Result<ChallengeResource, ApiError> {
         let request_url = self.get_verify_base_uri(verify_service_sid, "VerificationCheck");
+        let request_params: HashMap<String, String> = check_params.into();
 
         let response = self
             .client
-            .make_post_request(request_url.as_str(), &check_params)
+            .make_post_request(request_url.as_str(), &request_params)
             .await?;
 
         if response.status() == StatusCode::CREATED {
@@ -545,6 +633,7 @@ mod tests {
                 "https://verify.twilio.com/v2/Services/{verify_service_sid}/Entities/{identity}/Factors"
             ),
         )];
+
         for data in test_data.iter() {
             let (endpoint, uri_params, expected_uri) = data;
             let url = verify.get_verify_uri(uri_params, endpoint);
