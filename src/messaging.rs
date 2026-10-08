@@ -1,7 +1,7 @@
 //! Structs, functions, etc for working with Twilio's Messaging API endpoint
 use std::collections::HashMap;
 
-use crate::{ApiError, ApiRequest, TwilioRestClient};
+use crate::{ApiError, ApiRequest, RequestValue, TwilioRestClient};
 
 use http::StatusCode;
 use serde::Deserialize;
@@ -111,7 +111,7 @@ pub struct MessageRequestBodyParams {
     pub content_sid: Option<String>,
 }
 
-impl TryFrom<&MessageRequestBodyParams> for HashMap<String, String> {
+impl TryFrom<&MessageRequestBodyParams> for HashMap<String, RequestValue> {
     type Error = &'static str;
 
     /// Attempts to transform a MessageRequestBodyParams into a HashMap
@@ -119,6 +119,7 @@ impl TryFrom<&MessageRequestBodyParams> for HashMap<String, String> {
     /// # Example
     ///
     /// ```
+    /// use rustlio::RequestValue;
     /// use rustlio::messaging::ContentRetention::Disregard;
     /// use rustlio::messaging::MessageRequestBodyParams;
     /// use std::collections::HashMap;
@@ -151,43 +152,44 @@ impl TryFrom<&MessageRequestBodyParams> for HashMap<String, String> {
     ///     validity_period: None,
     /// };
     ///
-    /// let params_map = HashMap::<String, String>::try_from(&params);
+    /// let params_map = HashMap::<String, RequestValue>::try_from(&params);
     /// ```
     fn try_from(val: &MessageRequestBodyParams) -> Result<Self, Self::Error> {
-        let mut map: HashMap<String, String> = HashMap::from([("To".to_string(), val.to.clone())]);
+        let mut map: HashMap<String, RequestValue> =
+            HashMap::from([("To".to_string(), RequestValue::Str(val.to.clone()))]);
 
         if val.status_callback.is_some() {
             map.insert(
                 "StatusCallback".to_string(),
-                val.status_callback.clone().unwrap_or("".to_string()),
+                RequestValue::Str(val.status_callback.clone().unwrap_or("".to_string())),
             );
         }
 
         if val.application_sid.is_some() {
             map.insert(
                 "ApplicationSid".to_string(),
-                val.application_sid.clone().unwrap_or("".to_string()),
+                RequestValue::Str(val.application_sid.clone().unwrap_or("".to_string())),
             );
         }
 
         if val.send_at.is_some() {
             map.insert(
                 "SendAt".to_string(),
-                val.send_at.clone().unwrap_or("".to_string()),
+                RequestValue::Str(val.send_at.clone().unwrap_or("".to_string())),
             );
         }
 
         if val.content_variables.is_some() {
             map.insert(
                 "ContentVariables".to_string(),
-                val.content_variables.clone().unwrap_or("".to_string()),
+                RequestValue::Str(val.content_variables.clone().unwrap_or("".to_string())),
             );
         }
 
         if val.fallback_from.is_some() {
             map.insert(
                 "FallbackFrom".to_string(),
-                val.fallback_from.clone().unwrap_or("".to_string()),
+                RequestValue::Str(val.fallback_from.clone().unwrap_or("".to_string())),
             );
         }
 
@@ -196,21 +198,30 @@ impl TryFrom<&MessageRequestBodyParams> for HashMap<String, String> {
                 RiskCheck::Enable => "enable",
                 RiskCheck::Disable => "disable",
             };
-            map.insert("RiskCheck".to_string(), risk_check.to_string());
+            map.insert(
+                "RiskCheck".to_string(),
+                RequestValue::Str(risk_check.to_string()),
+            );
         }
 
         if val.schedule_type.is_some() {
             let schedule_type = match val.schedule_type.clone().unwrap_or_default() {
                 ScheduleType::Fixed => "fixed",
             };
-            map.insert("ScheduleType".to_string(), schedule_type.to_string());
+            map.insert(
+                "ScheduleType".to_string(),
+                RequestValue::Str(schedule_type.to_string()),
+            );
         }
 
         if val.traffic_type.is_some() {
             let traffic_type = match val.traffic_type.clone().unwrap_or_default() {
                 TrafficType::Free => "free",
             };
-            map.insert("TrafficType".to_string(), traffic_type.to_string());
+            map.insert(
+                "TrafficType".to_string(),
+                RequestValue::Str(traffic_type.to_string()),
+            );
         }
 
         if val.address_retention.is_some() {
@@ -220,7 +231,7 @@ impl TryFrom<&MessageRequestBodyParams> for HashMap<String, String> {
             };
             map.insert(
                 "AddressRetention".to_string(),
-                address_retention.to_string(),
+                RequestValue::Str(address_retention.to_string()),
             );
         }
 
@@ -231,7 +242,7 @@ impl TryFrom<&MessageRequestBodyParams> for HashMap<String, String> {
             };
             map.insert(
                 "ContentRetention".to_string(),
-                content_retention.to_string(),
+                RequestValue::Str(content_retention.to_string()),
             );
         }
 
@@ -239,13 +250,16 @@ impl TryFrom<&MessageRequestBodyParams> for HashMap<String, String> {
             return Err("Either the from or messaging service SID is required");
         } else {
             if val.from.is_some() {
-                map.insert("From".to_string(), val.from.clone().unwrap_or_default());
+                map.insert(
+                    "From".to_string(),
+                    RequestValue::Str(val.from.clone().unwrap_or_default()),
+                );
             }
 
             if val.messaging_service_sid.is_some() {
                 map.insert(
                     "MessagingServiceSid".to_string(),
-                    val.messaging_service_sid.clone().unwrap_or_default(),
+                    RequestValue::Str(val.messaging_service_sid.clone().unwrap_or_default()),
                 );
             }
         }
@@ -253,56 +267,56 @@ impl TryFrom<&MessageRequestBodyParams> for HashMap<String, String> {
         if val.send_as_mms.is_some() {
             map.insert(
                 "SendAsMms".to_string(),
-                val.send_as_mms.unwrap_or(false).to_string(),
+                RequestValue::Str(val.send_as_mms.unwrap_or(false).to_string()),
             );
         }
 
         if val.shorten_urls.is_some() {
             map.insert(
                 "ShortenUrls".to_string(),
-                val.shorten_urls.unwrap_or(false).to_string(),
+                RequestValue::Str(val.shorten_urls.unwrap_or(false).to_string()),
             );
         }
 
         if val.smart_encoded.is_some() {
             map.insert(
                 "SmartEncoded".to_string(),
-                val.smart_encoded.unwrap_or(false).to_string(),
+                RequestValue::Str(val.smart_encoded.unwrap_or(false).to_string()),
             );
         }
 
         if val.force_delivery.is_some() {
             map.insert(
                 "ForceDelivery".to_string(),
-                val.force_delivery.unwrap_or(false).to_string(),
+                RequestValue::Str(val.force_delivery.unwrap_or(false).to_string()),
             );
         }
 
         if val.provide_feedback.is_some() {
             map.insert(
                 "ProvideFeedback".to_string(),
-                val.provide_feedback.unwrap_or(false).to_string(),
+                RequestValue::Str(val.provide_feedback.unwrap_or(false).to_string()),
             );
         }
 
         if val.max_price.is_some() {
             map.insert(
                 "MaxPrice".to_string(),
-                val.max_price.unwrap_or_default().to_string(),
+                RequestValue::Str(val.max_price.unwrap_or_default().to_string()),
             );
         }
 
         if val.attempt.is_some() {
             map.insert(
                 "Attempt".to_string(),
-                val.attempt.unwrap_or_default().to_string(),
+                RequestValue::Str(val.attempt.unwrap_or_default().to_string()),
             );
         }
 
         if val.validity_period.is_some() {
             map.insert(
                 "ValidityPeriod".to_string(),
-                val.validity_period.unwrap_or_default().to_string(),
+                RequestValue::Str(val.validity_period.unwrap_or_default().to_string()),
             );
         }
 
@@ -310,7 +324,10 @@ impl TryFrom<&MessageRequestBodyParams> for HashMap<String, String> {
             return Err("A body, media URL, or content SID is required.");
         } else {
             if val.body.is_some() {
-                map.insert("Body".to_string(), val.body.clone().unwrap_or_default());
+                map.insert(
+                    "Body".to_string(),
+                    RequestValue::Str(val.body.clone().unwrap_or_default()),
+                );
             }
 
             let mut range_max = MAX_MEDIA_URLS;
@@ -318,15 +335,14 @@ impl TryFrom<&MessageRequestBodyParams> for HashMap<String, String> {
             if media_url.len() < MAX_MEDIA_URLS {
                 range_max = media_url.len();
             }
-
             for url in &mut media_url[0..range_max] {
-                map.insert("MediaUrl".to_string(), url.clone());
+                map.insert("MediaUrl".to_string(), RequestValue::Str(url.clone()));
             }
 
             if val.content_sid.is_some() {
                 map.insert(
                     "ContentSid".to_string(),
-                    val.content_sid.clone().unwrap_or_default(),
+                    RequestValue::Str(val.content_sid.clone().unwrap_or_default()),
                 );
             }
         }
@@ -588,8 +604,11 @@ mod tests {
             traffic_type: None,
             validity_period: None,
         };
-        let params_map = HashMap::<String, String>::try_from(&params).unwrap();
-        assert_eq!(params_map.get("Body"), Some(&"Hi".to_string()));
+        let params_map = HashMap::<String, RequestValue>::try_from(&params).unwrap();
+        assert_eq!(
+            params_map.get("Body"),
+            Some(&RequestValue::Str("Hi".to_string()))
+        );
     }
 
     #[tokio::test]

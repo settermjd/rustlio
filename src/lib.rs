@@ -27,7 +27,7 @@ trait ApiRequest {
     async fn make_post_request(
         &self,
         request_url: &str,
-        request_params: &HashMap<String, String>,
+        request_params: &HashMap<String, RequestValue>,
     ) -> Result<Response, reqwest::Error>;
 }
 
@@ -38,10 +38,12 @@ pub struct TwilioRestClient {
     pub auth_token: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, PartialEq, Serialize)]
+#[serde(untagged)]
 pub enum RequestValue {
     Str(String),
     Int(i32),
+    Vec(Vec<String>),
 }
 
 impl ApiRequest for TwilioRestClient {
@@ -54,7 +56,7 @@ impl ApiRequest for TwilioRestClient {
     async fn make_post_request(
         &self,
         request_url: &str,
-        request_params: &HashMap<String, String>,
+        request_params: &HashMap<String, RequestValue>,
     ) -> Result<Response, reqwest::Error> {
         let client = &Client::new();
         let mut request_builder = client

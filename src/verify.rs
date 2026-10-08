@@ -7,7 +7,7 @@ use std::error::Error;
 use std::fmt;
 use url::Url;
 
-use crate::{ApiError, ApiRequest, TwilioRestClient};
+use crate::{ApiError, ApiRequest, RequestValue, TwilioRestClient};
 
 const VERIFY_BASE_URI: &str = "https://verify.twilio.com/v2/Services";
 
@@ -144,7 +144,7 @@ pub struct CreateNewFactorRequestParams {
     pub metadata: Option<String>,
 }
 
-impl From<CreateNewFactorRequestParams> for HashMap<String, String> {
+impl From<CreateNewFactorRequestParams> for HashMap<String, RequestValue> {
     fn from(val: CreateNewFactorRequestParams) -> Self {
         let factor_type = match val.factor_type {
             FactorType::Passkeys => String::from("passkeys"),
@@ -152,11 +152,14 @@ impl From<CreateNewFactorRequestParams> for HashMap<String, String> {
             FactorType::Totp => String::from("totp"),
         };
         HashMap::from([
-            ("FriendlyName".to_string(), val.friendly_name),
-            ("FactorType".to_string(), factor_type),
+            (
+                "FriendlyName".to_string(),
+                RequestValue::Str(val.friendly_name),
+            ),
+            ("FactorType".to_string(), RequestValue::Str(factor_type)),
             (
                 "Metadata".to_string(),
-                val.metadata.unwrap_or("".to_string()),
+                RequestValue::Str(val.metadata.unwrap_or("".to_string())),
             ),
         ])
     }
@@ -172,16 +175,16 @@ pub struct UpdateFactorRequestParams {
     pub friendly_name: Option<String>,
 }
 
-impl From<UpdateFactorRequestParams> for HashMap<String, String> {
+impl From<UpdateFactorRequestParams> for HashMap<String, RequestValue> {
     fn from(val: UpdateFactorRequestParams) -> Self {
         HashMap::from([
             (
                 "AuthPayload".to_string(),
-                val.auth_payload.unwrap_or("".to_string()),
+                RequestValue::Str(val.auth_payload.unwrap_or("".to_string())),
             ),
             (
                 "FriendlyName".to_string(),
-                val.friendly_name.unwrap_or("".to_string()),
+                RequestValue::Str(val.friendly_name.unwrap_or("".to_string())),
             ),
         ])
     }
@@ -199,21 +202,21 @@ pub struct CreateChallengeRequestParams {
     pub hidden_details: Option<String>,
 }
 
-impl From<CreateChallengeRequestParams> for HashMap<String, String> {
+impl From<CreateChallengeRequestParams> for HashMap<String, RequestValue> {
     fn from(val: CreateChallengeRequestParams) -> Self {
         HashMap::from([
-            ("FactorSid".to_string(), val.factor_sid),
+            ("FactorSid".to_string(), RequestValue::Str(val.factor_sid)),
             (
                 "AuthPayload".to_string(),
-                val.auth_payload.unwrap_or("".to_string()),
+                RequestValue::Str(val.auth_payload.unwrap_or("".to_string())),
             ),
             (
                 "ExpirationDate".to_string(),
-                val.expiration_date.unwrap_or("".to_string()),
+                RequestValue::Str(val.expiration_date.unwrap_or("".to_string())),
             ),
             (
                 "HiddenDetails".to_string(),
-                val.hidden_details.unwrap_or("".to_string()),
+                RequestValue::Str(val.hidden_details.unwrap_or("".to_string())),
             ),
         ])
     }
@@ -261,7 +264,7 @@ impl VerificationCheckRequestParams {
 
 /// A simplistic type conversion from a VerificationCheckRequestParams object
 /// into a HashMap.
-impl From<VerificationCheckRequestParams> for HashMap<String, String> {
+impl From<VerificationCheckRequestParams> for HashMap<String, RequestValue> {
     fn from(val: VerificationCheckRequestParams) -> Self {
         let mut map = HashMap::new();
         let fields = vec![
@@ -276,7 +279,10 @@ impl From<VerificationCheckRequestParams> for HashMap<String, String> {
             if let Ok(field_value) = val.get(field_name)
                 && !field_value.is_empty()
             {
-                map.insert(stringcase::pascal_case(field_name), field_value);
+                map.insert(
+                    stringcase::pascal_case(field_name),
+                    RequestValue::Str(field_value),
+                );
             }
         }
 
@@ -362,8 +368,11 @@ impl Verify {
     ) -> Result<SendTokenResponse, ApiError> {
         let request_url = self.get_verify_base_uri(verify_service_sid, "Verifications");
         let request_params = HashMap::from([
-            ("To".to_string(), send_to.to_string()),
-            ("Channel".to_string(), channel.to_string()),
+            ("To".to_string(), RequestValue::Str(send_to.to_string())),
+            (
+                "Channel".to_string(),
+                RequestValue::Str(channel.to_string()),
+            ),
         ]);
         let response = self
             .client
@@ -428,7 +437,7 @@ impl Verify {
         check_params: VerificationCheckRequestParams,
     ) -> Result<VerificationCheckResponse, ApiError> {
         let request_url = self.get_verify_base_uri(verify_service_sid, "VerificationCheck");
-        let request_params: HashMap<String, String> = check_params.into();
+        let request_params: HashMap<String, RequestValue> = check_params.into();
 
         let response = self
             .client
@@ -464,7 +473,7 @@ impl Verify {
             )
             .map_err(|e| ApiError::ServerError(e.to_string()))?;
 
-        let request_params: HashMap<String, String> = check_params.into();
+        let request_params: HashMap<String, RequestValue> = check_params.into();
 
         let response = self
             .client
@@ -511,7 +520,7 @@ impl Verify {
         check_params: UpdateFactorRequestParams,
     ) -> Result<FactorResource, ApiError> {
         let request_url = self.get_verify_base_uri(verify_service_sid, "VerificationCheck");
-        let request_params: HashMap<String, String> = check_params.into();
+        let request_params: HashMap<String, RequestValue> = check_params.into();
 
         let response = self
             .client
@@ -533,7 +542,7 @@ impl Verify {
         check_params: CreateChallengeRequestParams,
     ) -> Result<ChallengeResource, ApiError> {
         let request_url = self.get_verify_base_uri(verify_service_sid, "VerificationCheck");
-        let request_params: HashMap<String, String> = check_params.into();
+        let request_params: HashMap<String, RequestValue> = check_params.into();
 
         let response = self
             .client
