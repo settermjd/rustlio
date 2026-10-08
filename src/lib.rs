@@ -64,7 +64,6 @@ impl ApiRequest for TwilioRestClient {
             .basic_auth(&self.account_sid, Some(&self.auth_token));
 
         if !request_params.is_empty() {
-            println!("Request params: {:?}", request_params);
             request_builder = request_builder.form(&request_params);
         }
 
