@@ -4,7 +4,7 @@ use cli_table::{Cell, Style, Table, print_stdout};
 use itertools::Itertools;
 use reqwest::Client;
 use serde::Deserialize;
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt};
 use url::Url;
 
 /// This models the phone number information that is returned from requests to the API
@@ -182,6 +182,38 @@ pub struct SmsPumpingRiskScore {
     pub number_blocked_last_3_months: Option<bool>,
     pub sms_pumping_risk_score: u32,
     pub error_code: Option<String>,
+}
+
+impl fmt::Display for SmsPumpingRiskScore {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if let Some(error_code) = &self.error_code {
+            write!(f, "Error code: {}.", error_code)?;
+        } else {
+            if let Some(risk_category) = &self.carrier_risk_category {
+                write!(f, "Carrier risk category: {}.", risk_category)?;
+            }
+
+            if let Some(number_blocked) = &self.number_blocked {
+                write!(f, " Number blocked: {}.", number_blocked)?;
+            }
+
+            if let Some(number_blocked_date) = &self.number_blocked_date {
+                write!(f, " Number blocked date: {}.", number_blocked_date)?;
+            }
+
+            if let Some(number_blocked_last_3_months) = &self.number_blocked_last_3_months {
+                write!(
+                    f,
+                    " Number blocked in the last three months: {}.",
+                    number_blocked_last_3_months
+                )?;
+            }
+
+            write!(f, " Pumping risk score: {}.", self.sms_pumping_risk_score)?;
+        }
+
+        Ok(())
+    }
 }
 
 /// SimSwap models a phone number's sim swap properties
@@ -541,4 +573,67 @@ pub fn print_phone_number_data(record: &PhoneNumber) {
     let table = vec![row].table().title(headers).bold(true);
 
     assert!(print_stdout(table).is_ok());
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use parameterized::parameterized;
+
+    #[parameterized(risk_score_data = {(Some("low".to_string()), Some(false), Some("Fri, 13 Aug 2010 01:16:24 +0000".to_string()), Some(false), 25, None), (Some("low".to_string()), Some(false), Some("Fri, 13 Aug 2010 01:16:24 +0000".to_string()), Some(false), 25, Some("400".to_string())), (None, None, None, None, 0, Some("61006".to_string())), (Some("moderate".to_string()), Some(false), Some("Fri, 13 Aug 2010 01:16:24 +0000".to_string()), Some(true), 61, None)})]
+    fn can_display_sms_pumping_risk_score_when_not_an_error(
+        risk_score_data: (
+            Option<String>,
+            Option<bool>,
+            Option<String>,
+            Option<bool>,
+            u32,
+            Option<String>,
+        ),
+    ) {
+        let risk_score = SmsPumpingRiskScore {
+            carrier_risk_category: risk_score_data.0.clone(),
+            number_blocked: risk_score_data.1,
+            number_blocked_date: risk_score_data.2.clone(),
+            number_blocked_last_3_months: risk_score_data.3,
+            sms_pumping_risk_score: risk_score_data.4,
+            error_code: risk_score_data.5.clone(),
+        };
+
+        let mut expected_output = "".to_string();
+
+        let error_code = &risk_score_data.5.unwrap_or_default();
+        if !error_code.is_empty() {
+            expected_output.push_str(format!("Error code: {}.", error_code).as_str());
+        } else {
+            if let Some(risk_category) = risk_score_data.0 {
+                expected_output
+                    .push_str(format!("Carrier risk category: {}.", risk_category).as_str());
+            }
+
+            if let Some(number_blocked) = risk_score_data.1 {
+                expected_output.push_str(format!(" Number blocked: {}.", number_blocked).as_str());
+            }
+
+            if let Some(number_blocked_date) = risk_score_data.2 {
+                expected_output
+                    .push_str(format!(" Number blocked date: {}.", number_blocked_date).as_str());
+            }
+
+            if let Some(number_blocked_last_3_months) = risk_score_data.3 {
+                expected_output.push_str(
+                    format!(
+                        " Number blocked in the last three months: {}.",
+                        number_blocked_last_3_months
+                    )
+                    .as_str(),
+                );
+            }
+
+            expected_output
+                .push_str(format!(" Pumping risk score: {}.", risk_score_data.4).as_str());
+        }
+
+        assert_eq!(risk_score.to_string(), expected_output);
+    }
 }
