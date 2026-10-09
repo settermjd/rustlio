@@ -4,8 +4,11 @@ use cli_table::{Cell, Style, Table, print_stdout};
 use itertools::Itertools;
 use reqwest::Client;
 use serde::Deserialize;
-use std::{collections::HashMap, fmt};
+use std::fmt;
 use url::Url;
+use urlencoding::encode;
+
+const LOOKUP_BASE_URI: &str = "https://lookups.twilio.com/v2/PhoneNumbers";
 
 /// This models the phone number information that is returned from requests to the API
 ///
@@ -74,8 +77,8 @@ impl PhoneNumber {
     /// // Setting a DataPackage to true indicates that it is to be in the lookup request.
     /// // You can add a DataPackage and set it to false, or just not include it to not
     /// // include it in the lookup request.
-    /// let data_packages = HashMap::from([
-    ///     (lookup::DataPackage::SmsPumpingRiskScore, true),
+    /// let data_packages = Vec::from([
+    ///     lookup::DataPackage::SmsPumpingRiskScore,
     /// ]);
     ///
     /// // Perform a basic lookup of a phone number
@@ -283,38 +286,30 @@ impl DataPackage {
 /// # Examples
 ///
 /// ```rust,no_run
-/// use std::collections::HashMap;
+/// use std::vec;
 /// use rustlio::lookup::DataPackage;
 /// use rustlio::lookup::get_lookup_request_url;
 ///
-/// let mut data_packages: HashMap<DataPackage, bool> = HashMap::new();
-/// data_packages.insert(DataPackage::LineTypeIntelligence, true);
-/// data_packages.insert(DataPackage::SimSwap, true);
-/// data_packages.insert(DataPackage::SmsPumpingRiskScore, true);
+/// let data_packages = vec![
+///     DataPackage::LineTypeIntelligence,
+///     DataPackage::SimSwap,
+///     DataPackage::SmsPumpingRiskScore,
+/// ];
 /// let phone_number = "+61123456789";
 ///
-/// let url = get_lookup_request_url(
-///     format!("https://lookups.twilio.com/v2/PhoneNumbers/{phone_number}"),
-///     &data_packages
-/// );
+/// let url = get_lookup_request_url(phone_number, &data_packages);
 /// ```
-pub fn get_lookup_request_url(
-    lookup_uri_base: String,
-    data_packages: &HashMap<DataPackage, bool>,
-) -> Url {
+pub fn get_lookup_request_url(phone_number: &str, data_packages: &[DataPackage]) -> Url {
     let mut issue_list_url =
-        Url::parse(&lookup_uri_base).expect("Unable to parse the provided URL");
+        Url::parse(format!("{}/{}", LOOKUP_BASE_URI, encode(phone_number)).as_str())
+            .expect("Unable to parse the provided URL");
 
     if data_packages.is_empty() {
         return issue_list_url;
     }
 
-    let desired_data_packages = data_packages.iter().filter_map(|(k, v)| match v {
-        true => Some(k),
-        false => None,
-    });
-
-    let field_names: String = desired_data_packages
+    let field_names: String = data_packages
+        .iter()
         .map(|field| field.as_str())
         .sorted()
         .collect::<Vec<&str>>()
@@ -354,7 +349,7 @@ pub fn get_lookup_request_url(
 /// // Data Package, information.
 /// let data = lookup::lookup_phone_data(
 ///     phone_number,
-///     &HashMap::new(),
+///     &Vec::new(),
 ///     &Client::new(),
 ///     &env::var("TWILIO_ACCOUNT_SID").unwrap(),
 ///     &env::var("TWILIO_AUTH_TOKEN").unwrap()
@@ -376,7 +371,7 @@ pub fn get_lookup_request_url(
 /// ```rust,no_run
 /// use reqwest::Client;
 /// use rustlio::lookup;
-/// use std::collections::HashMap;
+/// use std::vec;
 /// use std::env;
 ///
 /// # tokio_test::block_on(async {
@@ -385,8 +380,8 @@ pub fn get_lookup_request_url(
 /// // Setting a DataPackage to true indicates that it is to be in the lookup request.
 /// // You can add a DataPackage and set it to false, or just not include it to not
 /// // include it in the lookup request.
-/// let data_packages = HashMap::from([
-///     (lookup::DataPackage::LineTypeIntelligence, true),
+/// let data_packages = Vec::from([
+///     lookup::DataPackage::LineTypeIntelligence,
 /// ]);
 ///
 /// // Perform a basic lookup of a phone number
@@ -415,19 +410,13 @@ pub fn get_lookup_request_url(
 /// ```
 pub async fn lookup_phone_data(
     phone_number: &str,
-    data_packages: &HashMap<DataPackage, bool>,
+    data_packages: &[DataPackage],
     client: &Client,
     user: &String,
     password: &String,
 ) -> Result<PhoneNumber, reqwest::Error> {
-    let request_url: String = get_lookup_request_url(
-        format!("https://lookups.twilio.com/v2/PhoneNumbers/{phone_number}"),
-        data_packages,
-    )
-    .to_string();
-
     let response = client
-        .get(request_url)
+        .get(get_lookup_request_url(phone_number, data_packages).to_string())
         .basic_auth(user, Some(password))
         .send()
         .await?;
@@ -484,7 +473,7 @@ pub async fn lookup_phone_data_with_line_type(
 ) -> Result<PhoneNumber, reqwest::Error> {
     lookup_phone_data(
         phone_number,
-        &HashMap::from([(DataPackage::LineTypeIntelligence, true)]),
+        &[DataPackage::LineTypeIntelligence],
         client,
         user,
         password,
@@ -579,6 +568,18 @@ pub fn print_phone_number_data(record: &PhoneNumber) {
 mod tests {
     use super::*;
     use parameterized::parameterized;
+
+    #[parameterized(expected_url = { 
+        "https://lookups.twilio.com/v2/PhoneNumbers/%2B442222222222?Fields=sms_pumping_risk" 
+    }, phone_number = {
+        String::from("+442222222222"),
+    }, data_packages = {
+        vec![DataPackage::SmsPumpingRiskScore]
+    })]
+    fn can_get_accurate_lookup_request_url(expected_url: &str, phone_number: String, data_packages: Vec<DataPackage>) {
+        let url = get_lookup_request_url(&phone_number, &data_packages);
+        assert_eq!(url.as_str(), expected_url);
+    }
 
     #[parameterized(risk_score_data = {(Some("low".to_string()), Some(false), Some("Fri, 13 Aug 2010 01:16:24 +0000".to_string()), Some(false), 25, None), (Some("low".to_string()), Some(false), Some("Fri, 13 Aug 2010 01:16:24 +0000".to_string()), Some(false), 25, Some("400".to_string())), (None, None, None, None, 0, Some("61006".to_string())), (Some("moderate".to_string()), Some(false), Some("Fri, 13 Aug 2010 01:16:24 +0000".to_string()), Some(true), 61, None)})]
     fn can_display_sms_pumping_risk_score_when_not_an_error(
