@@ -222,7 +222,7 @@ impl fmt::Display for SmsPumpingRiskScore {
 /// SimSwap models a phone number's sim swap properties
 ///
 /// For more information, [check out the documentation](https://www.twilio.com/docs/lookup/v2-api/sim-swap).
-#[derive(Default, Deserialize, Debug)]
+#[derive(Clone, Default, Deserialize, Debug)]
 pub struct SimSwap {
     pub last_sim_swap: Option<LastSimSwap>,
 }
