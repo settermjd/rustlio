@@ -581,6 +581,25 @@ mod tests {
         assert_eq!(url.as_str(), expected_url);
     }
 
+    #[test]
+    fn can_display_debug_data_for_last_sim_swap()
+    {
+        let sim_swap = SimSwap{
+            last_sim_swap: Some(LastSimSwap{
+                last_sim_swap_date: Some("2020-04-27T10:18:50Z".to_string()),
+                swapped_period: Some("PT48H".to_string()),
+                swapped_in_period: false,
+            })
+        };
+
+        let last_sim_swap = sim_swap
+            .last_sim_swap
+            .ok_or("Last SIM swap data not available.")
+            .unwrap();
+
+        assert_eq!("SIM Swap status: LastSimSwap { last_sim_swap_date: Some(\"2020-04-27T10:18:50Z\"), swapped_period: Some(\"PT48H\"), swapped_in_period: false }", format!("SIM Swap status: {:?}", last_sim_swap));
+    }
+
     #[parameterized(risk_score_data = {(Some("low".to_string()), Some(false), Some("Fri, 13 Aug 2010 01:16:24 +0000".to_string()), Some(false), 25, None), (Some("low".to_string()), Some(false), Some("Fri, 13 Aug 2010 01:16:24 +0000".to_string()), Some(false), 25, Some("400".to_string())), (None, None, None, None, 0, Some("61006".to_string())), (Some("moderate".to_string()), Some(false), Some("Fri, 13 Aug 2010 01:16:24 +0000".to_string()), Some(true), 61, None)})]
     fn can_display_sms_pumping_risk_score_when_not_an_error(
         risk_score_data: (
